@@ -15,6 +15,7 @@ enum SpotifyConnectDeviceName {
     static func activate() {
         _ = PlaybackAudioRoute.shared
         SpotifyConnectDeviceNameGroup().activate()
+        SpotifyConnectPublication.activate()
         if let cls = NSClassFromString("SPTGaiaConnectStateImpl"),
            class_getInstanceMethod(cls, NSSelectorFromString("activeDevice")) != nil {
             SpotifyConnectOutputGroup().activate()
