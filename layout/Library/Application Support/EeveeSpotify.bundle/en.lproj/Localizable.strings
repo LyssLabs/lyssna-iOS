@@ -603,4 +603,7 @@ lyrics_sources_reset = "Reset source defaults";
 
 spotify_connect_device_name = "Spotify Connect device name";
 spotify_connect_device_name_placeholder = "Device name";
-spotify_connect_device_name_footer = "Enter the name other devices should show for this device. Leave blank to use the system name. Restart Spotify after changing it.";
+spotify_connect_device_name_footer = "Enter the name for this device. AirPlay uses the receiver's name; headphones keep this device name. Leave blank to use the system name. Restart Spotify after editing this field.";
+lyrics_output_this_device = "This device";
+lyrics_output_previous_offset = "Use previous offset (%+.0f ms) for this output";
+lyrics_output_offset_help = "Saved for the current audio output. Other outputs use their own saved offset, or zero until adjusted. Positive values show lyrics earlier; negative values show them later.";

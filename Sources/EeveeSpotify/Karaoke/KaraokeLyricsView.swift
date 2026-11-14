@@ -12,6 +12,7 @@ struct KaraokeLyricsView: View {
     @ObservedObject private var viewport: KaraokeViewport
     @StateObject private var model: KaraokeLyricsViewModel
     @ObservedObject private var lyricFont = KaraokeFont.shared
+    @ObservedObject private var audioRoute = PlaybackAudioRoute.shared
     @State private var options = UserDefaults.karaokeOptions
 
     init(trackId: String?, lyrics: KaraokeLyricsDto?, viewport: KaraokeViewport, onDismiss: @escaping () -> Void) {
@@ -80,6 +81,7 @@ struct KaraokeLyricsView: View {
 
     private var displayOptions: KaraokeOptions {
         var value = options
+        value.timingOffsetMs = audioRoute.timingOffsetMs
         if viewport.landscape { value.pinnedFooterMode = .off }
         return value
     }
@@ -90,7 +92,7 @@ struct KaraokeLyricsView: View {
             KaraokeSpaceGravityView(lyrics: lyrics, layouts: layouts, options: displayOptions, size: size, showsCredits: !viewport.landscape)
         } else {
             TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { _ in
-                let currentMs = KaraokePlaybackTracker.shared.currentPositionMs() + Int(options.timingOffsetMs)
+                let currentMs = KaraokePlaybackTracker.shared.currentPositionMs() + Int(audioRoute.timingOffsetMs)
 
                 KaraokeScrollingLines(
                     lyrics: lyrics,

@@ -5,6 +5,7 @@ struct EeveeLyricsSettingsView: View {
     @State private var karaokeOptions: KaraokeOptions = UserDefaults.karaokeOptions
     @ObservedObject private var lyricFont = KaraokeFont.shared
     @ObservedObject private var motion = KaraokeSpaceMotion.shared
+    @ObservedObject private var audioRoute = PlaybackAudioRoute.shared
     @State private var fontURLDraft = UserDefaults.karaokeOptions.customFontURL
     @State private var shareMotion = false
     @State var spicyLyricsApiKey: String = UserDefaults.spicyLyricsApiKey
@@ -27,7 +28,10 @@ struct EeveeLyricsSettingsView: View {
 
                 if viewModel.lyricsSource.supportsCustomLyricsView {
                     karaokeAppearanceSection()
-                    SettingsResetSection(visible: karaokeOptions != KaraokeOptions()) { karaokeOptions = KaraokeOptions() }
+                    SettingsResetSection(visible: karaokeOptions != KaraokeOptions() || audioRoute.hasSavedOffsets) {
+                        karaokeOptions = KaraokeOptions()
+                        audioRoute.resetTimingOffsets()
+                    }
                 }
             }
 
@@ -206,12 +210,18 @@ struct EeveeLyricsSettingsView: View {
                     HStack {
                         Text("karaoke_timing_offset".localized)
                         Spacer()
-                        Text(String(format: "%+.0f ms", karaokeOptions.timingOffsetMs)).font(.system(size: 16, design: .monospaced))
+                        Text(String(format: "%+.0f ms", audioRoute.timingOffsetMs)).font(.system(size: 16, design: .monospaced))
                     }
-                    Slider(value: $karaokeOptions.timingOffsetMs, in: -3000...3000, step: 25)
-                    Text("karaoke_timing_offset_help".localized).font(.caption).foregroundColor(.gray)
-                    if karaokeOptions.timingOffsetMs != 0 {
-                        Button("karaoke_timing_reset".localized) { karaokeOptions.timingOffsetMs = 0 }
+                    Text(audioRoute.output.name).font(.caption).foregroundColor(.secondary)
+                    Slider(value: Binding(get: { audioRoute.timingOffsetMs }, set: { audioRoute.setTimingOffset($0) }), in: -3000...3000, step: 25)
+                    Text("lyrics_output_offset_help".localized).font(.caption).foregroundColor(.gray)
+                    if audioRoute.timingOffsetMs == 0 && audioRoute.previousGlobalOffsetMs != 0 {
+                        Button("lyrics_output_previous_offset".localizeWithFormat(audioRoute.previousGlobalOffsetMs)) {
+                            audioRoute.setTimingOffset(audioRoute.previousGlobalOffsetMs)
+                        }
+                    }
+                    if audioRoute.timingOffsetMs != 0 {
+                        Button("karaoke_timing_reset".localized) { audioRoute.setTimingOffset(0) }
                     }
                 }
             }
