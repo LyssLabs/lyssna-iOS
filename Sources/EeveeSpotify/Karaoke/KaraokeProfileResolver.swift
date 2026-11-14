@@ -1,6 +1,6 @@
 import Foundation
 
-/// Uses the public website's profile lookup; /query is restricted to Spicy's own client.
+/// Uses Spicy's public profile lookup, with a public Discord lookup fallback.
 /// Resolve usernames and display-name casing together, without downloading track history.
 @available(iOS 15.0, *)
 actor KaraokeProfileResolver {
@@ -38,6 +38,39 @@ actor KaraokeProfileResolver {
     }
 
     private static func fetch(id: String) async -> LyricsContributorIdentity? {
+        if let profile = await fetchSpicy(id: id), profile.username != id {
+            return profile
+        }
+        return await fetchDiscord(id: id)
+    }
+
+    private static func fetchDiscord(id: String) async -> LyricsContributorIdentity? {
+        // This service exposes public Discord profiles without shipping a bot token.
+        // https://disc-lookup.vercel.app/docs
+        guard UInt64(id) != nil,
+              let url = URL(string: "https://discord-lookup.lookupbotdc.workers.dev/search/\(id)") else { return nil }
+        var request = URLRequest(url: url)
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("EeveeSpotify", forHTTPHeaderField: "User-Agent")
+        do {
+            let (data, response) = try await session.data(for: request)
+            guard (response as? HTTPURLResponse)?.statusCode == 200,
+                  let body = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let user = body["user"] as? [String: Any],
+                  user["id"] as? String == id,
+                  let username = LyricsContributorIdentity.nonEmpty(user["username"] as? String),
+                  username != id else { return nil }
+            return LyricsContributorIdentity(
+                username: username,
+                displayName: LyricsContributorIdentity.nonEmpty(user["global_name"] as? String)
+            )
+        } catch {
+            eeveeLog("[Karaoke][profile] Discord lookup user=%@ failed code=%d", id, (error as NSError).code)
+            return nil
+        }
+    }
+
+    private static func fetchSpicy(id: String) async -> LyricsContributorIdentity? {
         // The website uses devalue's indexed JSON format for tRPC input/output.
         let input: [Any] = [["id": 1, "includeTracks": 2], id, false]
         guard let data = try? JSONSerialization.data(withJSONObject: input),
