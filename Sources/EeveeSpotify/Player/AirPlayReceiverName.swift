@@ -74,7 +74,11 @@ enum AirPlayReceiverName {
     private static func receiverLabel(_ device: NSObject, fallback: String?) -> String? {
         guard let name = useful(object(device, "name") as? String)
                 ?? useful(object(device, "deviceName") as? String) ?? fallback else { return nil }
-        let identifier = (object(device, "modelID") as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        var identifier = (object(device, "modelID") as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if identifier.flatMap({ modelNames[$0.lowercased()] }) == nil,
+           let advertised = AirPlayReceiverModel.shared.identifier(for: name) {
+            identifier = advertised
+        }
         let model = identifier.flatMap { modelNames[$0.lowercased()] }
         noteModel(identifier, model: model)
         guard let model else { return name }

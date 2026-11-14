@@ -93,6 +93,23 @@ else
     cp -R "$EXT_SRC" Payload/Spotify.app/PlugIns/
 fi
 rm -rf Payload/Spotify.app/Watch Payload/Spotify.app/com.apple.WatchPlaceholder
+# The receiver-model fallback resolves only selected AirPlay Bonjour services.
+# Declare the type so iOS can apply the app's Local Network permission.
+python3 - <<'PY'
+import plistlib
+from pathlib import Path
+
+path = Path("Payload/Spotify.app/Info.plist")
+with path.open("rb") as file:
+    info = plistlib.load(file)
+services = list(info.get("NSBonjourServices", []))
+if "_airplay._tcp" not in services:
+    services.append("_airplay._tcp")
+info["NSBonjourServices"] = services
+info.setdefault("NSLocalNetworkUsageDescription", "Find and identify your selected AirPlay speakers.")
+with path.open("wb") as file:
+    plistlib.dump(info, file, fmt=plistlib.FMT_BINARY, sort_keys=False)
+PY
 rm -f "$(basename "$OUT_IPA")"
 zip -qry "$(basename "$OUT_IPA")" Payload
 rm -rf Payload

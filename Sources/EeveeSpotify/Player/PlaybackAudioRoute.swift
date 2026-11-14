@@ -16,6 +16,7 @@ final class PlaybackAudioRoute: ObservableObject {
     private var offsets: [String: Double]
     private var remoteOutput: Output?
     private var routeObserver: NSObjectProtocol?
+    private var modelObserver: NSObjectProtocol?
 
     private init() {
         let current = Self.localOutput()
@@ -32,10 +33,14 @@ final class PlaybackAudioRoute: ObservableObject {
         routeObserver = NotificationCenter.default.addObserver(
             forName: AVAudioSession.routeChangeNotification, object: nil, queue: .main
         ) { [weak self] _ in self?.refresh() }
+        modelObserver = NotificationCenter.default.addObserver(
+            forName: .eeveeAirPlayModelChanged, object: nil, queue: .main
+        ) { [weak self] _ in self?.refresh() }
     }
 
     deinit {
         if let routeObserver { NotificationCenter.default.removeObserver(routeObserver) }
+        if let modelObserver { NotificationCenter.default.removeObserver(modelObserver) }
     }
 
     private static func clamped(_ value: Double) -> Double {
