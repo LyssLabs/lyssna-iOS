@@ -52,16 +52,13 @@ final class PlaybackAudioRoute: ObservableObject {
         let identifiers = external.map { $0.uid.isEmpty ? $0.portName : $0.uid }.sorted()
         let encoded = (try? JSONEncoder().encode(identifiers)).flatMap { String(data: $0, encoding: .utf8) }
         return Output(id: "audio:" + (encoded ?? identifiers.joined(separator: "|")),
-                      name: external.map(\.portName).sorted().joined(separator: ", "))
+                      name: AirPlayReceiverName.name(for: ports) ?? external.map(\.portName).sorted().joined(separator: ", "))
     }
 
     /// Only AirPlay receivers replace the phone's name. Bluetooth headphones
     /// (including AirPods), wired headphones and the built-in output do not.
     static var airPlayName: String? {
-        let ports = AVAudioSession.sharedInstance().currentRoute.outputs
-        guard !ports.isEmpty, ports.allSatisfy({ $0.portType == .airPlay }) else { return nil }
-        let names = ports.map { $0.portName.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
-        return names.isEmpty ? nil : names.sorted().joined(separator: ", ")
+        AirPlayReceiverName.name(for: AVAudioSession.sharedInstance().currentRoute.outputs)
     }
 
     var hasSavedOffsets: Bool { offsets.values.contains { $0 != 0 } }

@@ -163,7 +163,7 @@ enum SpotifyConnectPublication {
         else if ports.contains(where: { $0.portType == .carAudio }) { outputType = 5 }
         else if ports.allSatisfy({ $0.portType == .builtInSpeaker || $0.portType == .builtInReceiver }) { outputType = 1 }
         else { outputType = 2 }
-        let outputName = ports.map(\.portName).sorted().joined(separator: ", ")
+        let outputName = airPlayName ?? ports.map(\.portName).sorted().joined(separator: ", ")
         let previousOutput: [Field]
         if let previous = unique(24, in: info)?.bytes {
             guard let parsed = fields(previous) else { return nil }
