@@ -226,6 +226,7 @@ struct EeveeSpotify: Tweak {
             return
         }
 
+        SpotifyConnectDeviceName.activate()
         KaraokeRotation.activate()
         activateRemotePlaybackProtection()
 

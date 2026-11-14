@@ -5,9 +5,17 @@ struct EeveeMiscellaneousSettingsView: View {
     @State private var blockTelemetry = UserDefaults.blockTelemetry
     @State private var cleanShareLinks = UserDefaults.cleanShareLinks
     @State private var blockRatingPrompts = UserDefaults.blockRatingPrompts
+    @State private var deviceName = UserDefaults.spotifyConnectDeviceName
 
     var body: some View {
         List {
+            Section(header: Text("spotify_connect_device_name".localized),
+                    footer: Text("spotify_connect_device_name_footer".localized)) {
+                TextField("spotify_connect_device_name_placeholder".localized, text: $deviceName)
+                    .autocapitalization(.none)
+                    .disableAutocorrection(true)
+            }
+
             Section(footer: Text("block_telemetry_footer".localized)) {
                 Toggle("block_telemetry".localized, isOn: $blockTelemetry)
             }
@@ -20,7 +28,9 @@ struct EeveeMiscellaneousSettingsView: View {
                 Toggle("clean_share_links".localized, isOn: $cleanShareLinks)
             }
 
-            RestartSection(visible: blockTelemetry != TelemetryBlock.launchEnabled || blockRatingPrompts != RatingPromptBlock.launchEnabled)
+            RestartSection(visible: blockTelemetry != TelemetryBlock.launchEnabled
+                           || blockRatingPrompts != RatingPromptBlock.launchEnabled
+                           || SpotifyConnectDeviceName.normalized(deviceName) != SpotifyConnectDeviceName.launchName)
 
             SpacerView()
         }
@@ -28,5 +38,6 @@ struct EeveeMiscellaneousSettingsView: View {
         .onChange(of: blockTelemetry) { UserDefaults.blockTelemetry = $0 }
         .onChange(of: cleanShareLinks) { UserDefaults.cleanShareLinks = $0 }
         .onChange(of: blockRatingPrompts) { UserDefaults.blockRatingPrompts = $0 }
+        .onChange(of: deviceName) { UserDefaults.spotifyConnectDeviceName = $0 }
     }
 }

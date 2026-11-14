@@ -600,3 +600,7 @@ lyrics_sources_line = "Line synced";
 lyrics_sources_plain = "Unsynced";
 lyrics_sources_apple_quality = "Prefer Apple Music timing quality";
 lyrics_sources_reset = "Reset source defaults";
+
+spotify_connect_device_name = "Spotify Connect device name";
+spotify_connect_device_name_placeholder = "Device name";
+spotify_connect_device_name_footer = "Enter the name other devices should show for this device. Leave blank to use the system name. Restart Spotify after changing it.";

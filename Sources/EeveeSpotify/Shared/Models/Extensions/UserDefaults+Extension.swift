@@ -132,4 +132,9 @@ extension UserDefaults {
         get { container.bool(forKey: "eeveeRoundedArtwork") }
         set { container.set(newValue, forKey: "eeveeRoundedArtwork") }
     }
+
+    static var spotifyConnectDeviceName: String {
+        get { SpotifyConnectDeviceName.normalized(container.string(forKey: "eeveeSpotifyConnectDeviceName") ?? "") }
+        set { container.set(SpotifyConnectDeviceName.normalized(newValue), forKey: "eeveeSpotifyConnectDeviceName") }
+    }
 }
