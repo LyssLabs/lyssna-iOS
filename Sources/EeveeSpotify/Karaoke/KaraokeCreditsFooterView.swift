@@ -39,8 +39,9 @@ struct KaraokeCreditsFooterView: View {
     private func resolveName(_ name: String?, link: String?) async -> String? {
         guard let name else { return nil }
         let profile = await KaraokeProfileResolver.shared.identity(profileURL: link)
-        // Lyrics metadata can put a display name in "username". Never restore it on lookup failure.
-        return profile?.creditName(preserving: name) ?? KaraokeProfileResolver.userID(profileURL: link)
+        // Public profile lookup may require a website session. Keep the supplied
+        // credit when unavailable rather than replacing a known name with an ID.
+        return profile?.creditName(preserving: name) ?? nonEmpty(name)
     }
 
     private var providerLabel: String? {
