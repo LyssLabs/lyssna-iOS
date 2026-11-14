@@ -185,7 +185,7 @@ func eeveeEnvFlag(_ name: String) -> Bool {
 }
 
 struct EeveeSpotify: Tweak {
-    static let version = "7.0.0"
+    static let version = "7.0.1"
     static let buildNumber = "1"
     static let spotifyVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
     static let repoSlug = GeneratedConfig.repoSlug
@@ -200,7 +200,7 @@ struct EeveeSpotify: Tweak {
             return .lastAvailableiOS15
         case "8.9.8":
             return .lastAvailableiOS14
-        case _ where version.contains("9.1"):
+        case _ where version.hasPrefix("9.1.") || version.hasPrefix("9.2."):
             return .v91
         default:
             return .latest
