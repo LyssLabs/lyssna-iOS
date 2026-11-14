@@ -51,7 +51,8 @@ class SpotifyConnectDestinationNameHook: ClassHook<NSObject> {
 
     func name() -> String? {
         if (target.value(forKey: "isSelf") as? NSNumber)?.boolValue == true {
-            return SpotifyConnectDeviceName.reportedName ?? orig.name()
+            // The model's original name may still cache the AirPlay receiver.
+            return SpotifyConnectDeviceName.reportedName ?? UIDevice.current.name
         }
         return orig.name()
     }
