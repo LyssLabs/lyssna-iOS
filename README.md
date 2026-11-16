@@ -32,7 +32,7 @@ LYSSNA_IPA_OUTPUT="/path/to/Lyssna.ipa" \
   bash build-ipa-local.sh /path/to/Spotify-decrypted.ipa
 ```
 
-The package version is defined in `control`; the runtime version is defined in `Sources/Lyssna/Tweak.x.swift`. Keep these values aligned when updating the app.
+The package version is defined in `control`; the runtime version is defined in `Sources/Lyssna/Tweak.x.swift`. Keep these values aligned when updating the app. Packaging sets `CFBundleVersion` to that Lyssna version for installer update tracking, while `CFBundleShortVersionString` retains the underlying Spotify version. App extensions receive the same Lyssna build version. See [Apple's bundle version reference](https://developer.apple.com/documentation/bundleresources/information-property-list/cfbundleversion).
 
 `LYSSNA_MINIMAL_IPA=1` omits optional app extensions for signing setups that require one App ID. The previous `EEVEE_IPA_OUTPUT` and `EEVEE_MINIMAL_IPA` environment variables remain compatibility aliases.
 

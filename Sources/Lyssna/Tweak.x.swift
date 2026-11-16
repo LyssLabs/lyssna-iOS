@@ -266,7 +266,8 @@ struct Lyssna: Tweak {
             activateSessionLogoutProtection(minimal: false)
         }
 
-        let spotifyBuild = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
+        let spotifyBuild = Bundle.main.object(forInfoDictionaryKey: "LyssnaSpotifyBundleVersion") as? String
+            ?? Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
         let iosVersion = UIDevice.current.systemVersion
         let deviceModel = UIDevice.current.model
 

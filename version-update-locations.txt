@@ -14,8 +14,10 @@ Keep these current values aligned:
 - .github/workflows/native-downloads.yml: optional input description
 
 Historical provenance records describe their original upstream builds and keep
-those original version values. Spotify's CFBundleShortVersionString and
-CFBundleVersion identify the underlying Spotify binary and stay unchanged.
+those original version values. Spotify's CFBundleShortVersionString stays
+unchanged. Packaging writes the Lyssna version from control to CFBundleVersion
+for the main app and its extensions. The native Spotify build is retained in
+LyssnaSpotifyBundleVersion for diagnostics.
 
 build-ipa-local.sh reads the Lyssna version from control and the Spotify version
 from the source IPA. Finished files use Lyssna-<version>-<spotify-version>.ipa.
