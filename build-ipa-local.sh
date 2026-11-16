@@ -32,8 +32,16 @@ cd "$REPO_DIR"
 [ -n "${THEOS:-}" ] || { [ -d "$HOME/theos" ] && export THEOS="$HOME/theos" || { echo "THEOS not set"; exit 1; }; }
 
 VERSION=$(grep -E '^Version:' control | awk '{print $2}')
-SPOT_VERSION=$(unzip -p "$VANILLA_IPA" 'Payload/Spotify.app/Info.plist' \
-    | plutil -extract CFBundleShortVersionString raw - 2>/dev/null || echo "unknown")
+SPOT_VERSION=$(python3 - "$VANILLA_IPA" <<'PYVERSION'
+import plistlib
+import sys
+import zipfile
+
+with zipfile.ZipFile(sys.argv[1]) as archive:
+    info = plistlib.loads(archive.read("Payload/Spotify.app/Info.plist"))
+print(info.get("LyssnaSpotifyVersion") or info["CFBundleShortVersionString"])
+PYVERSION
+)
 PUBLISH_IPA="${LYSSNA_IPA_OUTPUT:-${EEVEE_IPA_OUTPUT:-$HOME/Library/Mobile Documents/com~apple~CloudDocs/iOS IPAs/Lyssna-${VERSION}-${SPOT_VERSION}.ipa}}"
 [[ "$PUBLISH_IPA" == /* ]] || PUBLISH_IPA="$REPO_DIR/$PUBLISH_IPA"
 OUT_DIR=$(mktemp -d)

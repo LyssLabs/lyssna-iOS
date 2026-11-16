@@ -47,7 +47,7 @@ def main():
     with ZipFile(args.ipa) as archive:
         names = archive.namelist()
         info = plistlib.loads(archive.read("Payload/Spotify.app/Info.plist"))
-        if info.get("CFBundleShortVersionString") != PROFILE["spotify_version"]:
+        if info.get("LyssnaSpotifyVersion", info.get("CFBundleShortVersionString")) != PROFILE["spotify_version"]:
             raise RuntimeError("Spotify version mismatch")
         if LYSSNA not in names or COMPANION not in names:
             raise RuntimeError("Expected the assembled Lyssna + LyssnaOffline IPA")

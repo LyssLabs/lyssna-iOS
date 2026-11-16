@@ -7,3 +7,5 @@ The glyph derives from Lucide's MicVocal icon (ISC), as documented in the deskto
 `Assets/AppIcon/sources/Lyssna.png` is the 1024-pixel opaque primary icon rendered from the vector. The packaging utility produces the required device sizes. The resource bundle also includes a copy for the settings header.
 
 The packaged icon declares `UIPrerenderedIcon` because the artwork already includes gloss. Keeping green on the foreground disc avoids relying on a solid green background for the mark's contrast. System dark/tinted appearances still require device verification; see [Apple's icon guidance](https://developer.apple.com/design/human-interface-guidelines/app-icons).
+
+The launch artwork in `Assets/LaunchScreen` reuses the green disc and microphone on a uniform dark background matching the launch storyboard. Packaging compiles that storyboard for iPhone and iPad, replaces Spotify's original launch storyboard, and selects a content-specific launch name.

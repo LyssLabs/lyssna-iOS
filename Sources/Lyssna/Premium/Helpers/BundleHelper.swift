@@ -73,9 +73,7 @@ class BundleHelper {
     ]
     
     func resolveConfiguration() throws -> ResolveConfiguration {
-        let spotifyVersion = Bundle.main.object(
-            forInfoDictionaryKey: "CFBundleShortVersionString"
-        ) as? String ?? ""
+        let spotifyVersion = Lyssna.spotifyVersion
         let resourceName = BundledConfigurationPolicy.resourceName(for: spotifyVersion)
 
         guard let bundle = self.bundle,

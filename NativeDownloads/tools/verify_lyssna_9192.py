@@ -36,7 +36,7 @@ def main():
     with ZipFile(args.input) as source:
         original = source.read(EXECUTABLE)
         info = plistlib.loads(source.read(APP + 'Info.plist'))
-        require(info['CFBundleShortVersionString'] == PROFILE['spotify_version'], 'Wrong Spotify version')
+        require(info.get('LyssnaSpotifyVersion', info.get('CFBundleShortVersionString')) == PROFILE['spotify_version'], 'Wrong Spotify version')
         require(quota.layout(original)[3] == quota.UUID, 'Wrong Spotify UUID')
         # The manager destructor publishes this table. Its unchanged slot 65
         # points to the relocated six-argument restriction setter.

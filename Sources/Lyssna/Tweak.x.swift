@@ -181,7 +181,8 @@ func lyssnaEnvFlag(_ name: String) -> Bool {
 
 struct Lyssna: Tweak {
     static let version = "0.1.1"
-    static let spotifyVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
+    static let spotifyVersion = Bundle.main.object(forInfoDictionaryKey: "LyssnaSpotifyVersion") as? String
+        ?? Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
     static let repoSlug = GeneratedConfig.repoSlug
     
     static var hookTarget: VersionHookTarget {

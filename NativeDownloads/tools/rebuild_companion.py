@@ -30,7 +30,7 @@ def main():
     with ZipFile(args.ipa) as archive:
         archive.getinfo(ENTRY)
         info = plistlib.loads(archive.read("Payload/Spotify.app/Info.plist"))
-        if info.get("CFBundleShortVersionString") != PROFILE["spotify_version"]:
+        if info.get("LyssnaSpotifyVersion", info.get("CFBundleShortVersionString")) != PROFILE["spotify_version"]:
             raise RuntimeError("Input Spotify version does not match the target")
         if layout(archive.read("Payload/Spotify.app/Spotify"))[3] != bytes.fromhex(PROFILE["uuid"]):
             raise RuntimeError("Input Spotify UUID does not match the target")

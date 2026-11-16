@@ -22,7 +22,7 @@ Spotify's account, authentication, API endpoints, native class names, and media 
 
 ## Building
 
-Build on macOS with Xcode command-line tools, Theos, `cyan` (pyzule-rw), `ipapatch`, `dpkg`, `ldid`, Python 3, and the dependencies used by the build scripts. Supply a compatible decrypted Spotify IPA.
+Build on macOS with Xcode with the iOS SDK, Theos, `cyan` (pyzule-rw), `ipapatch`, `dpkg`, `ldid`, Python 3, and the dependencies used by the build scripts. Supply a compatible decrypted Spotify IPA.
 
 Set the Theos installation path and choose an output file:
 
@@ -32,11 +32,11 @@ LYSSNA_IPA_OUTPUT="/path/to/Lyssna.ipa" \
   bash build-ipa-local.sh /path/to/Spotify-decrypted.ipa
 ```
 
-The package version is defined in `control`; the runtime version is defined in `Sources/Lyssna/Tweak.x.swift`. Keep these values aligned when updating the app. Packaging sets `CFBundleVersion` to that Lyssna version for installer update tracking, while `CFBundleShortVersionString` retains the underlying Spotify version. App extensions receive the same Lyssna build version. See [Apple's bundle version reference](https://developer.apple.com/documentation/bundleresources/information-property-list/cfbundleversion).
+The package version is defined in `control`; the runtime version is defined in `Sources/Lyssna/Tweak.x.swift`. Keep these values aligned when updating the app. Packaging sets both `CFBundleShortVersionString` and `CFBundleVersion` to the Lyssna version for installer update tracking, including app extensions. The original Spotify values are retained in `LyssnaSpotifyVersion` and `LyssnaSpotifyBundleVersion` for hook selection, configuration, and diagnostics. See [Apple's app version reference](https://developer.apple.com/documentation/bundleresources/information-property-list/cfbundleshortversionstring).
 
 `LYSSNA_MINIMAL_IPA=1` omits optional app extensions for signing setups that require one App ID. The previous `EEVEE_IPA_OUTPUT` and `EEVEE_MINIMAL_IPA` environment variables remain compatibility aliases.
 
-The pipeline builds `Lyssna.dylib` and the isolated `LyssnaProtobuf.framework`, packages `Lyssna.bundle`, injects the sideload compatibility library, and applies the app name, primary icon, localized display names, and AirPlay Bonjour declaration before publishing the completed IPA. It preserves the input app's bundle identifier and executable name. The package ID `com.lyssna.spotify` identifies the tweak package; it is separate from the app's device bundle ID.
+The pipeline builds `Lyssna.dylib` and the isolated `LyssnaProtobuf.framework`, packages `Lyssna.bundle`, injects the sideload compatibility library, and applies the app name, primary icon, localized display names, Lyssna launch screen, and AirPlay Bonjour declaration before publishing the completed IPA. It preserves the input app's bundle identifier and executable name. The package ID `com.lyssna.spotify` identifies the tweak package; it is separate from the app's device bundle ID.
 
 Sign and install the resulting IPA using your preferred compatible installer. No signed IPA is committed to this repository. Additional packaging workflows are available in `.github/workflows`.
 
@@ -53,6 +53,7 @@ The selected receiver must advertise usable metadata and be reachable. Device gr
 - `NativeDownloads`: the offline-download implementation, presented as Lyssna Offline.
 - `layout/Library/Application Support/Lyssna.bundle`: translations, configuration, and app resources.
 - `Assets/Brand`: shared microphone mark and vector source.
+- `Assets/LaunchScreen`: centered Lyssna launch logo and storyboard.
 - `Assets/AppIcon/sources/Lyssna.png`: opaque primary iOS icon.
 - `Tools/brand-app.py`: presentation changes that preserve app identity.
 - `Scripts/pull-lyrics-log.py`: retrieve diagnostics from a paired USB device.

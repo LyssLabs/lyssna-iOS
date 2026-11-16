@@ -10,6 +10,35 @@ import subprocess
 from pathlib import Path
 
 
+def apply_launch_branding(app: Path, root: Path, info: dict) -> None:
+    storyboard = root / "Assets/LaunchScreen/LyssnaLaunchScreen.storyboard"
+    logo = root / "Assets/LaunchScreen/LyssnaLaunchLogo.png"
+    digest = hashlib.sha256(storyboard.read_bytes() + logo.read_bytes()).hexdigest()[:12]
+    name = f"LyssnaLaunch-{digest}"
+    compiled = app / f"{name}.storyboardc"
+    if compiled.exists():
+        shutil.rmtree(compiled)
+    subprocess.run(
+        ["xcrun", "ibtool", "--compile", str(compiled), str(storyboard),
+         "--minimum-deployment-target", str(info.get("MinimumOSVersion", "15.0")),
+         "--target-device", "iphone", "--target-device", "ipad"],
+        check=True,
+    )
+    shutil.copyfile(logo, app / "LyssnaLaunchLogo.png")
+    # Spotify can also load its original storyboard directly during startup.
+    legacy = app / "LaunchScreen.storyboardc"
+    if legacy.exists():
+        shutil.rmtree(legacy)
+    shutil.copytree(compiled, legacy)
+    info["UILaunchStoryboardName"] = name
+    for key in list(info):
+        if key.startswith("UILaunchStoryboardName~"):
+            info[key] = name
+    # Use one launch definition rather than leaving a competing old entry.
+    info.pop("UILaunchScreen", None)
+    info.pop("UILaunchStoryboards", None)
+
+
 def apply_branding(app: Path) -> None:
     root = Path(__file__).resolve().parent.parent
     version = next(
@@ -22,12 +51,15 @@ def apply_branding(app: Path) -> None:
     plist = app / "Info.plist"
     with plist.open("rb") as file:
         info = plistlib.load(file)
-    identity = (info["CFBundleIdentifier"], info.get("CFBundleExecutable"), info.get("CFBundleShortVersionString"))
-    # Keep the native Spotify build available to diagnostics while installers
-    # receive the Lyssna version as the app's build number.
+    identity = (info["CFBundleIdentifier"], info.get("CFBundleExecutable"))
+    # Keep native Spotify metadata available to hooks and diagnostics while
+    # installers receive Lyssna in both public version fields.
+    if "CFBundleShortVersionString" in info:
+        info.setdefault("LyssnaSpotifyVersion", info["CFBundleShortVersionString"])
     if "CFBundleVersion" in info:
         info.setdefault("LyssnaSpotifyBundleVersion", info["CFBundleVersion"])
     info["CFBundleVersion"] = version
+    info["CFBundleShortVersionString"] = version
     info["CFBundleDisplayName"] = "Lyssna"
     info["CFBundleName"] = "Lyssna"
     info.pop("CFBundleIconName", None)
@@ -64,8 +96,9 @@ def apply_branding(app: Path) -> None:
     }.items():
         info[key] = {"CFBundlePrimaryIcon": {"CFBundleIconFiles": files, "UIPrerenderedIcon": True}}
     info["CFBundleIconFiles"] = [f"{stem}60x60", f"{stem}76x76", f"{stem}83.5x83.5"]
-    if (info["CFBundleIdentifier"], info.get("CFBundleExecutable"), info.get("CFBundleShortVersionString")) != identity:
-        raise ValueError("Branding must preserve Spotify's bundle ID, executable, and release version")
+    apply_launch_branding(app, root, info)
+    if (info["CFBundleIdentifier"], info.get("CFBundleExecutable")) != identity:
+        raise ValueError("Branding must preserve Spotify's bundle ID and executable")
     with plist.open("wb") as file:
         plistlib.dump(info, file, fmt=plistlib.FMT_BINARY, sort_keys=False)
 
@@ -77,6 +110,8 @@ def apply_branding(app: Path) -> None:
         )
         localized = plistlib.loads(result.stdout)
         localized.update(CFBundleDisplayName="Lyssna", CFBundleName="Lyssna")
+        if "CFBundleShortVersionString" in localized:
+            localized["CFBundleShortVersionString"] = version
         if "CFBundleVersion" in localized:
             localized["CFBundleVersion"] = version
         with strings.open("wb") as file:
@@ -91,6 +126,7 @@ def apply_branding(app: Path) -> None:
         with extension_plist.open("rb") as file:
             extension_info = plistlib.load(file)
         extension_info["CFBundleVersion"] = version
+        extension_info["CFBundleShortVersionString"] = version
         for key in ["CFBundleDisplayName", "CFBundleName"]:
             value = extension_info.get(key)
             if isinstance(value, str) and "Spotify" in value:
@@ -105,6 +141,8 @@ def apply_branding(app: Path) -> None:
             localized = plistlib.loads(result.stdout)
             if "CFBundleVersion" in localized:
                 localized["CFBundleVersion"] = version
+            if "CFBundleShortVersionString" in localized:
+                localized["CFBundleShortVersionString"] = version
             for key in ["CFBundleDisplayName", "CFBundleName"]:
                 value = localized.get(key)
                 if isinstance(value, str) and "Spotify" in value:
@@ -114,7 +152,7 @@ def apply_branding(app: Path) -> None:
 
     # The desktop mark also serves as artwork for document and settings previews.
     shutil.copyfile(root / "Assets/Brand/LyssnaMark.png", app / "LyssnaMark.png")
-    print(f"[branding] Applied Lyssna {version}, name and primary icon; Spotify version and bundle ID preserved")
+    print(f"[branding] Applied Lyssna {version}, name and primary icon; native Spotify metadata and bundle ID preserved")
 
 
 if __name__ == "__main__":

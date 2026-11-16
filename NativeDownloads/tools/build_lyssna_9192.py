@@ -66,7 +66,7 @@ def main():
     with ZipFile(source) as archive:
         info_name = "Payload/Spotify.app/Info.plist"
         info = plistlib.loads(archive.read(info_name))
-        if info.get("CFBundleShortVersionString") != PROFILE["spotify_version"]:
+        if info.get("LyssnaSpotifyVersion", info.get("CFBundleShortVersionString")) != PROFILE["spotify_version"]:
             raise RuntimeError(f"Expected Spotify {PROFILE['spotify_version']}")
         executable = "Payload/Spotify.app/Spotify"
         native = archive.read(executable)
