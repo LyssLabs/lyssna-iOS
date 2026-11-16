@@ -1,7 +1,7 @@
 Lyssna version updates
 ======================
 
-Use one semantic version, currently 0.1.2. No separate Lyssna build number.
+Use one semantic version, currently 0.1.3. No separate Lyssna build number.
 Keep the package, runtime, and installer metadata versions aligned when updating the app.
 
 Keep these current values aligned:

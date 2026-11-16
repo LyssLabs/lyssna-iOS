@@ -5,100 +5,126 @@ import UIKit
 
 struct LyssnaStartupBrandingGroup: HookGroup {}
 
-/// Spotify presents a native startup controller after the system launch screen.
-/// Replace only its centered logo, retaining the controller's loading lifecycle.
+/// Bind Spotify's actual startup image view. Its bounds can cover the screen,
+/// so a centered-small-subview search does not reliably find the visible logo.
 enum LyssnaStartupBranding {
-    private static var stateKey: UInt8 = 0
-    private static let image: UIImage? = Bundle.main.path(forResource: "LyssnaLaunchLogo", ofType: "png")
+    private static var controllerKey: UInt8 = 0
+    private static var imageViewKey: UInt8 = 0
+    private static let artwork: UIImage? = Bundle.main.path(forResource: "LyssnaLaunchLogo", ofType: "png")
         .flatMap { UIImage(contentsOfFile: $0) }
 
     private final class State {
-        weak var native: UIView?
-        var originalAlpha: CGFloat = 1
+        weak var imageView: UIImageView?
+        var originalImage: UIImage?
+        var originalContentMode: UIView.ContentMode = .scaleToFill
+        var rendered: UIImage?
+        var renderedSize = CGSize.zero
+        var active = false
         var diagnosticAttempts = 0
-        let replacement = UIImageView()
-        let mask = CAShapeLayer()
     }
 
     static func apply(to controller: UIViewController) {
-        guard let root = controller.viewIfLoaded, root.bounds.width > 0, let image else { return }
-        let state = objc_getAssociatedObject(controller, &stateKey) as? State ?? {
+        guard let root = controller.viewIfLoaded, artwork != nil else { return }
+        let state = objc_getAssociatedObject(controller, &controllerKey) as? State ?? {
             let value = State()
-            objc_setAssociatedObject(controller, &stateKey, value, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+            objc_setAssociatedObject(controller, &controllerKey, value, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
             return value
         }()
-        if state.native?.isDescendant(of: root) != true {
-            state.native?.alpha = state.originalAlpha
-            guard let native = logo(in: root, excluding: state.replacement) else {
-                state.replacement.removeFromSuperview()
-                if state.diagnosticAttempts < 3 {
-                    state.diagnosticAttempts += 1
-                    let children = root.subviews.prefix(6).map { "\(NSStringFromClass(type(of: $0))):\(NSCoder.string(for: $0.bounds))" }
-                    writeDebugLog("[Startup][branding] Awaiting native logo; children=\(children.joined(separator: ", "))")
-                }
-                return
+        guard let view = nativeImageView(in: controller, root: root) else {
+            if state.diagnosticAttempts < 3 {
+                state.diagnosticAttempts += 1
+                writeDebugLog("[Startup][branding] Waiting for native startup image view; root=\(NSStringFromClass(type(of: root)))")
             }
-            state.native = native
-            state.originalAlpha = native.alpha
-            state.replacement.image = image
-            state.replacement.contentMode = .scaleAspectFit
-            state.replacement.isUserInteractionEnabled = false
-            state.replacement.accessibilityElementsHidden = true
-            state.replacement.layer.mask = state.mask
-            writeDebugLog("[Startup][branding] Replaced native launch logo: \(NSStringFromClass(type(of: native)))")
+            return
         }
-        guard let native = state.native else { return }
-        let nativeFrame = native.convert(native.bounds, to: root)
-        native.alpha = 0
-        if state.replacement.superview !== root { root.addSubview(state.replacement) }
-        root.bringSubviewToFront(state.replacement)
-        let side = min(max(0, root.bounds.width - 48), max(224, min(320, nativeFrame.width / 0.713)))
-        state.replacement.frame = CGRect(x: nativeFrame.midX - side / 2, y: nativeFrame.midY - side / 2,
-                                         width: side, height: side)
-        // Exclude the PNG's dark square, preserving only the green foreground disc.
-        CATransaction.begin()
-        CATransaction.setDisableActions(true)
-        state.mask.frame = state.replacement.bounds
-        let inset = side * 146 / 1024
-        state.mask.path = UIBezierPath(ovalIn: state.replacement.bounds.insetBy(dx: inset, dy: inset)).cgPath
-        CATransaction.commit()
+        if state.imageView !== view || !state.active {
+            unbind(state)
+            state.imageView = view
+            state.originalImage = view.image
+            state.originalContentMode = view.contentMode
+            state.active = true
+            state.rendered = nil
+            state.renderedSize = .zero
+            objc_setAssociatedObject(view, &imageViewKey, state, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+            view.stopAnimating()
+            view.animationImages = nil
+            view.highlightedAnimationImages = nil
+            writeDebugLog("[Startup][branding] Bound native lazy startup image view; bounds=\(NSCoder.string(for: view.bounds))")
+        }
+        refresh(view)
+    }
+
+    static func refresh(_ view: UIImageView) {
+        guard let state = objc_getAssociatedObject(view, &imageViewKey) as? State, state.active,
+              let image = render(for: view, state: state) else { return }
+        view.contentMode = .scaleToFill
+        if view.image !== image { view.image = image }
+    }
+
+    /// Restrict interception to the image view explicitly bound by our launch
+    /// controller. Other UIImageViews keep their native images and layout.
+    static func replacement(for view: UIImageView, incoming: UIImage?) -> UIImage? {
+        guard let state = objc_getAssociatedObject(view, &imageViewKey) as? State, state.active else { return nil }
+        if incoming !== state.rendered { state.originalImage = incoming }
+        return render(for: view, state: state)
     }
 
     static func restore(_ controller: UIViewController) {
-        guard let state = objc_getAssociatedObject(controller, &stateKey) as? State else { return }
-        state.native?.alpha = state.originalAlpha
-        state.replacement.removeFromSuperview()
+        guard let state = objc_getAssociatedObject(controller, &controllerKey) as? State else { return }
+        unbind(state)
     }
 
-    private static func logo(in root: UIView, excluding replacement: UIView) -> UIView? {
-        var queue = root.subviews
-        var index = 0
-        var best: UIView?
-        var score: CGFloat = -1
-        while index < queue.count, index < 256 {
-            let view = queue[index]; index += 1
-            guard view !== replacement else { continue }
-            queue += view.subviews
-            let size = view.bounds.size
-            guard !view.isHidden, size.width >= 40, size.height >= 40,
-                  size.width <= 320, size.height <= 320,
-                  size.width / size.height > 0.65, size.width / size.height < 1.5 else { continue }
-            let name = NSStringFromClass(type(of: view)).lowercased()
-            let branded = name.contains("logo") || name.contains("encoreicon")
-            guard branded || view is UIImageView else { continue }
-            let rect = view.convert(view.bounds, to: root)
-            guard abs(rect.midX - root.bounds.midX) < root.bounds.width * 0.25,
-                  abs(rect.midY - root.bounds.midY) < root.bounds.height * 0.25 else { continue }
-            let candidate = (branded ? 1000 : 0) + min(size.width, size.height)
-            if candidate > score { best = view; score = candidate }
+    private static func unbind(_ state: State) {
+        state.active = false
+        if let view = state.imageView {
+            objc_setAssociatedObject(view, &imageViewKey, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+            view.contentMode = state.originalContentMode
+            view.image = state.originalImage
         }
-        return best
+        state.rendered = nil
+    }
+
+    private static func nativeImageView(in controller: UIViewController, root: UIView) -> UIImageView? {
+        // Verified in Spotify 9.2.0's ObjC class/ivar metadata. Resolve the
+        // runtime offset rather than copying an offset from the input binary.
+        if let ivar = class_getInstanceVariable(type(of: controller), "$__lazy_storage_$_imageView"),
+           let value = object_getIvar(controller, ivar) as? UIImageView,
+           value === root || value.isDescendant(of: root) { return value }
+        // Include the root itself and full-screen image views; neither has to
+        // satisfy an arbitrary logo-size or center-distance threshold.
+        var queue = [root]
+        var index = 0
+        while index < queue.count, index < 128 {
+            let view = queue[index]; index += 1
+            if let imageView = view as? UIImageView { return imageView }
+            queue += view.subviews
+        }
+        return nil
+    }
+
+    private static func render(for view: UIImageView, state: State) -> UIImage? {
+        let size = view.bounds.size
+        guard size.width.isFinite, size.height.isFinite,
+              size.width > 0, size.height > 0, size.width <= 4096, size.height <= 4096,
+              let artwork else { return nil }
+        if state.renderedSize == size, let rendered = state.rendered { return rendered }
+        // Keep the visible disc near the storyboard's 160pt diameter even
+        // when the native UIImageView is a full-screen canvas.
+        let side = min(224, min(size.width, size.height) / 0.713)
+        let rect = CGRect(x: (size.width - side) / 2, y: (size.height - side) / 2, width: side, height: side)
+        let rendered = UIGraphicsImageRenderer(size: size).image { context in
+            context.cgContext.addEllipse(in: rect.insetBy(dx: side * 146 / 1024, dy: side * 146 / 1024))
+            context.cgContext.clip()
+            artwork.draw(in: rect)
+        }.withRenderingMode(.alwaysOriginal)
+        state.renderedSize = size
+        state.rendered = rendered
+        return rendered
     }
 }
 
 class LyssnaNativeLaunchControllerHook: ClassHook<UIViewController> {
     typealias Group = LyssnaStartupBrandingGroup
-    // Verified in the Spotify 9.2.0 binary, separate from LaunchScreen.storyboardc.
     static let targetName = "_TtC30ContainerUI_RootUIInternalImpl20LaunchViewController"
 
     func viewDidLoad() {
@@ -117,10 +143,24 @@ class LyssnaNativeLaunchControllerHook: ClassHook<UIViewController> {
     }
 }
 
+class LyssnaNativeLaunchImageHook: ClassHook<UIImageView> {
+    typealias Group = LyssnaStartupBrandingGroup
+
+    func setImage(_ image: UIImage?) {
+        orig.setImage(LyssnaStartupBranding.replacement(for: target, incoming: image) ?? image)
+    }
+
+    func layoutSubviews() {
+        orig.layoutSubviews()
+        LyssnaStartupBranding.refresh(target)
+    }
+}
+
 func activateLyssnaStartupBranding() {
-    guard NSClassFromString(LyssnaNativeLaunchControllerHook.targetName) is UIViewController.Type else {
+    guard let _ = NSClassFromString(LyssnaNativeLaunchControllerHook.targetName) as? UIViewController.Type else {
         writeDebugLog("[Startup][branding] Native launch controller unavailable")
         return
     }
     LyssnaStartupBrandingGroup().activate()
+    writeDebugLog("[Startup][branding] Activated native startup image binding")
 }
