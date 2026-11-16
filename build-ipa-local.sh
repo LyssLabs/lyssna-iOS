@@ -135,6 +135,20 @@ PUBLISH_TEMP="$(dirname "$PUBLISH_IPA")/.lyssna-publish-$$.ipa.partial"
 cp "$OUT_IPA" "$PUBLISH_TEMP"
 mv -f "$PUBLISH_TEMP" "$PUBLISH_IPA"
 PUBLISH_TEMP=""
+# Keep only the completed current Lyssna IPA. Scope cleanup to our versioned
+# files and this destination; never remove another app's IPA or delete on failure.
+python3 - "$PUBLISH_IPA" <<'PYCLEANUP'
+import re
+import sys
+from pathlib import Path
+
+current = Path(sys.argv[1]).resolve()
+pattern = re.compile(r"Lyssna-[0-9]+\.[0-9]+\.[0-9]+-.+\.ipa", re.IGNORECASE)
+for previous in current.parent.iterdir():
+    if previous.is_file() and not previous.is_symlink() and pattern.fullmatch(previous.name):
+        if previous.resolve() != current:
+            previous.unlink()
+PYCLEANUP
 color "Done"
 echo "$PUBLISH_IPA"
 echo "Sign with Sideloadly / AltStore / TrollStore."

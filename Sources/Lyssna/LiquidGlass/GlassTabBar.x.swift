@@ -12,6 +12,30 @@ final class GlassSystemTabBar: UITabBar, UITabBarDelegate {
     var readinessAttempts = 0
     var readinessScheduled = false
 
+    private var lastWindowFrame = CGRect.null
+    private var lastWindowInsets = UIEdgeInsets.zero
+
+    // Spotify's status banners change ancestor safe areas. Only the physical
+    // home-indicator overlap belongs to this independently laid-out UITabBar.
+    override var safeAreaInsets: UIEdgeInsets {
+        guard let window else { return super.safeAreaInsets }
+        let rect = convert(bounds, to: window)
+        let safe = window.bounds.inset(by: window.safeAreaInsets)
+        return UIEdgeInsets(top: 0,
+                            left: max(0, min(bounds.width, safe.minX - rect.minX)),
+                            bottom: max(0, min(bounds.height, rect.maxY - safe.maxY)),
+                            right: max(0, min(bounds.width, rect.maxX - safe.maxX)))
+    }
+
+    func refreshWindowGeometry() {
+        guard let window else { return }
+        let frame = convert(bounds, to: window)
+        let insets = window.safeAreaInsets
+        guard frame != lastWindowFrame || insets != lastWindowInsets else { return }
+        lastWindowFrame = frame; lastWindowInsets = insets
+        setNeedsLayout()
+    }
+
     override func layoutSubviews() {
         super.layoutSubviews()
         GlassTabBar.didLayoutSystemBar(self)
@@ -85,6 +109,7 @@ enum GlassTabBar {
         }
         let frame = barFrame(in: stock)
         if bar.frame != frame { bar.frame = frame }
+        bar.refreshWindowGeometry()
         guard stock.window != nil else { return }
         guard let row = tabRow(in: stock) else { retryReadiness(stock, bar: bar); return }
         row.superview?.layoutIfNeeded()
@@ -278,15 +303,22 @@ enum GlassTabBar {
     }
 
     // Spotify lays its iPad tab bar out as a short full-width strip, well under the height a tab bar
-    // needs for an icon plus a label. Inheriting that height squashes the items, so the glass bar gets
-    // a floor of its own and is centred on Spotify's strip to keep the row where it was.
+    // needs for an icon plus a label. Give the glass bar a stable content height
+    // plus only its actual overlap with the window's home-indicator area.
     private static let minimumBarHeight: CGFloat = 50
 
     private static func barFrame(in stock: UIView) -> CGRect {
         let bounds = stock.bounds
-        let native = bounds.height > 0 && bounds.height < minimumBarHeight
-            ? CGRect(x: bounds.minX, y: bounds.midY - minimumBarHeight / 2, width: bounds.width, height: minimumBarHeight)
-            : bounds
+        let overlap: CGFloat
+        if let window = stock.window {
+            let rect = stock.convert(bounds, to: window)
+            let homeTop = window.bounds.maxY - window.safeAreaInsets.bottom
+            overlap = max(0, min(window.safeAreaInsets.bottom, rect.maxY - homeTop))
+        } else { overlap = 0 }
+        let height = minimumBarHeight + overlap
+        // Anchor to the native footer's bottom, above any connection/status banner.
+        // Do not inherit the banner-obstructed container's height or safe area.
+        let native = CGRect(x: bounds.minX, y: bounds.maxY - height, width: bounds.width, height: height)
         return LandscapeNavigation.barFrame(in: stock, fallback: native)
     }
 

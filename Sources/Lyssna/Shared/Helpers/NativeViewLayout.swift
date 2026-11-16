@@ -65,7 +65,11 @@ final class NativeViewPlacement {
     func place(_ rect: CGRect, in coordinateView: UIView, scale: CGFloat = 1) {
         guard let view, let parent = view.superview else { return }
         let target = parent.convert(rect, from: coordinateView)
-        let nextTransform = transform.concatenating(CGAffineTransform(scaleX: scale, y: scale))
+        // The destination rectangle already includes native parent/animation offsets.
+        // Carrying a saved translation applies that offset a second time.
+        var baseTransform = transform
+        baseTransform.tx = 0; baseTransform.ty = 0
+        let nextTransform = baseTransform.concatenating(CGAffineTransform(scaleX: scale, y: scale))
         if view.transform != nextTransform { view.transform = nextTransform }
         let size = CGSize(width: target.width / scale, height: target.height / scale)
         if view.bounds.size != size { view.bounds.size = size; view.setNeedsLayout() }

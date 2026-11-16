@@ -180,7 +180,7 @@ func lyssnaEnvFlag(_ name: String) -> Bool {
 }
 
 struct Lyssna: Tweak {
-    static let version = "0.1.1"
+    static let version = "0.1.2"
     static let spotifyVersion = Bundle.main.object(forInfoDictionaryKey: "LyssnaSpotifyVersion") as? String
         ?? Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
     static let repoSlug = GeneratedConfig.repoSlug
@@ -204,6 +204,7 @@ struct Lyssna: Tweak {
 
     init() {
         lyssnaBreadcrumb("Tweak init() entered")
+        activateLyssnaStartupBranding()
         // A stale flag cancels the next bootstrap and hangs the splash screen.
         UserDefaults.hasPatchedBootstrap = false
 
