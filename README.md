@@ -4,11 +4,9 @@
 
 # Lyssna for iOS
 
-Lyssna is a personal iOS customization of Spotify, with branding shared with the [Lyssna desktop app](../lyssna-app). It combines a custom lyrics player, playback and appearance controls, offline-download tools, and richer AirPlay receiver labels.
+Lyssna is an iOS customization of Spotify, with branding shared with the Lyssna desktop app. It combines a custom lyrics player, playback and appearance controls, offline-download tools, and richer AirPlay receiver labels.
 
 The app appears as **Lyssna** on the Home Screen and in its settings. Its device bundle identifier remains **`com.spotify.client`** so Spotify's native integration continues to use the same identity. Installing it with that identifier replaces the existing Spotify app rather than creating a separate app. Signing tools may apply their own bundle-identifier changes; choose their original-ID option when available.
-
-This repository is for personal builds. It does not publish formal releases or promise features that require a Spotify subscription on Spotify's servers.
 
 ## Features
 
@@ -17,40 +15,30 @@ This repository is for personal builds. It does not publish formal releases or p
 - Appearance controls for tabs, player controls, pages, artwork, and Liquid Glass layouts.
 - Playback controls, telemetry options, clean sharing links, and rating-prompt controls.
 - Offline-download management inherited from the upstream implementation. Availability depends on the Spotify version and account capabilities.
-- Spotify Connect labels that reflect the selected AirPlay receiver. Supported model metadata produces labels such as **Main Bedroom (HomePod mini)**; missing metadata leaves the receiver's name visible.
+- Spotify Connect labels that reflect the selected AirPlay receiver. Supported model metadata produces labels such as **Living Room (HomePod mini)**; missing metadata leaves the receiver's name visible.
 - A Lyssna microphone icon and consistent branding throughout the custom settings, modules, resource bundle, logs, and package.
 
 Spotify's account, authentication, API endpoints, native class names, and media protocols remain Spotify integrations. Lyssna branding does not change server-side entitlements or guarantee that any specific feature works across every Spotify version.
 
-## Local builds
+## Building
 
-The current Lyssna version is **0.1.0**. Meaningful updates increment the version; there is no separate Lyssna build number. Both the Lyssna version and the input Spotify version appear in the output filename.
+Build on macOS with Xcode command-line tools, Theos, `cyan` (pyzule-rw), `ipapatch`, `dpkg`, `ldid`, Python 3, and the dependencies used by the build scripts. Supply a compatible decrypted Spotify IPA.
 
-Build on macOS with Xcode command-line tools, Theos, `cyan` (pyzule-rw), `ipapatch`, `dpkg`, `ldid`, Python 3, and the dependencies used by the build scripts. Supply your own compatible decrypted Spotify IPA.
-
-```sh
-export THEOS="$HOME/theos"
-bash build-ipa-local.sh /absolute/path/to/Spotify-decrypted.ipa
-```
-
-The default destination is:
-
-```text
-~/Library/Mobile Documents/com~apple~CloudDocs/iOS IPAs/Lyssna-0.1.0-<spotify-version>.ipa
-```
-
-Override it when needed:
+Set the Theos installation path and choose an output file:
 
 ```sh
-LYSSNA_IPA_OUTPUT="/absolute/path/to/Lyssna.ipa" \
-  bash build-ipa-local.sh /absolute/path/to/Spotify-decrypted.ipa
+export THEOS="/path/to/theos"
+LYSSNA_IPA_OUTPUT="/path/to/Lyssna.ipa" \
+  bash build-ipa-local.sh /path/to/Spotify-decrypted.ipa
 ```
+
+The package version is defined in `control`; the runtime version is defined in `Sources/Lyssna/Tweak.x.swift`. Keep these values aligned when updating the app.
 
 `LYSSNA_MINIMAL_IPA=1` omits optional app extensions for signing setups that require one App ID. The previous `EEVEE_IPA_OUTPUT` and `EEVEE_MINIMAL_IPA` environment variables remain compatibility aliases.
 
 The pipeline builds `Lyssna.dylib` and the isolated `LyssnaProtobuf.framework`, packages `Lyssna.bundle`, injects the sideload compatibility library, and applies the app name, primary icon, localized display names, and AirPlay Bonjour declaration before publishing the completed IPA. It preserves the input app's bundle identifier and executable name. The package ID `com.lyssna.spotify` identifies the tweak package; it is separate from the app's device bundle ID.
 
-Sign and install the resulting IPA using your preferred compatible installer. No signed IPA is committed to this repository. Existing packaging workflows remain available but are not run or published automatically as part of local development.
+Sign and install the resulting IPA using your preferred compatible installer. No signed IPA is committed to this repository. Additional packaging workflows are available in `.github/workflows`.
 
 ## AirPlay labels
 
