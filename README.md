@@ -36,7 +36,7 @@ bash build-ipa-local.sh /absolute/path/to/Spotify-decrypted.ipa
 The default destination is:
 
 ```text
-~/Library/Mobile Documents/com~apple~CloudDocs/iOS Apps/Lyssna-0.1.0-<spotify-version>.ipa
+~/Library/Mobile Documents/com~apple~CloudDocs/iOS IPAs/Lyssna-0.1.0-<spotify-version>.ipa
 ```
 
 Override it when needed:
