@@ -23,7 +23,8 @@ func captureSpotifyAccessToken(_ token: String?) {
     if first { writeDebugLog("[Metadata] Native access token available") }
 }
 
-func captureAccessToken(from request: URLRequest?) {
+func captureAccessToken(from request: URLRequest?, session: URLSession? = nil) {
+    PixieAuthentication.capture(request, session: session)
     if let client = request?.value(forHTTPHeaderField: "client-token") {
         accessTokenLock.lock(); storedClientToken = client; accessTokenLock.unlock()
     }
@@ -42,7 +43,7 @@ class SPTDataLoaderServiceHook: ClassHook<NSObject>, SpotifySessionDelegate {
         task: URLSessionDataTask,
         didCompleteWithError error: Error?
     ) {
-        captureAccessToken(from: task.currentRequest)
+        captureAccessToken(from: task.currentRequest, session: session)
 
         guard let url = task.currentRequest?.url else {
             orig.URLSession(session, task: task, didCompleteWithError: error)
@@ -79,6 +80,13 @@ class SPTDataLoaderServiceHook: ClassHook<NSObject>, SpotifySessionDelegate {
             } else {
                 // Consumers crash on completion without a prior didReceiveData.
                 writeDebugLog("[DL] Missing buffered body for \(url.absoluteString) (taskId=\(task.taskIdentifier))")
+                if url.isNebulaAttributes {
+                    // Never hand the core an empty attributes body: leaving it to
+                    // its cache is better than clearing the product state.
+                    writeDebugLog("[DL] No attributes body to rewrite; left untouched")
+                    orig.URLSession(session, task: task, didCompleteWithError: error)
+                    return
+                }
                 orig.URLSession(session, dataTask: task, didReceiveData: Data())
                 orig.URLSession(session, task: task, didCompleteWithError: error)
             }

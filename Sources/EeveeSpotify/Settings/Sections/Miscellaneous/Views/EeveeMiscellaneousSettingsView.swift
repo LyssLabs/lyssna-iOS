@@ -6,6 +6,7 @@ struct EeveeMiscellaneousSettingsView: View {
     @State private var cleanShareLinks = UserDefaults.cleanShareLinks
     @State private var blockRatingPrompts = UserDefaults.blockRatingPrompts
     @State private var deviceName = UserDefaults.spotifyConnectDeviceName
+    @State private var localPlaylistDownload = UserDefaults.localPlaylistDownloadEnabled
 
     var body: some View {
         List {
@@ -28,9 +29,16 @@ struct EeveeMiscellaneousSettingsView: View {
                 Toggle("clean_share_links".localized, isOn: $cleanShareLinks)
             }
 
-            RestartSection(visible: blockTelemetry != TelemetryBlock.launchEnabled
-                           || blockRatingPrompts != RatingPromptBlock.launchEnabled
-                           || SpotifyConnectDeviceName.normalized(deviceName) != SpotifyConnectDeviceName.launchName)
+            if UserDefaults.patchType.isPatching {
+                Section {
+                    Toggle("local_playlist_download_button".localized, isOn: $localPlaylistDownload)
+                }
+            }
+
+            RestartSection(visible: blockTelemetry != TelemetryBlock.launchEnabled ||
+                blockRatingPrompts != RatingPromptBlock.launchEnabled ||
+                localPlaylistDownload != LocalPlaylistDownload.launchEnabled ||
+                SpotifyConnectDeviceName.normalized(deviceName) != SpotifyConnectDeviceName.launchName)
 
             SpacerView()
         }
@@ -39,5 +47,6 @@ struct EeveeMiscellaneousSettingsView: View {
         .onChange(of: cleanShareLinks) { UserDefaults.cleanShareLinks = $0 }
         .onChange(of: blockRatingPrompts) { UserDefaults.blockRatingPrompts = $0 }
         .onChange(of: deviceName) { UserDefaults.spotifyConnectDeviceName = $0 }
+        .onChange(of: localPlaylistDownload) { UserDefaults.localPlaylistDownloadEnabled = $0 }
     }
 }
