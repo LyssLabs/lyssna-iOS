@@ -2,6 +2,7 @@
 """Apply Lyssna presentation to a staged Spotify app without changing identity."""
 
 import argparse
+import hashlib
 import plistlib
 import shutil
 import subprocess
@@ -21,20 +22,23 @@ def apply_branding(app: Path) -> None:
     info.pop("CFBundleAlternateIcons", None)
 
     # Loose primary icon files override the original asset-catalog icon name.
-    # iOS applies its own rounded mask; the source is an opaque square.
+    # iOS applies its own rounded mask. The opaque artwork includes its own
+    # subtle gloss; declare that rather than requesting a second shine pass.
+    # A new artwork filename prevents reuse of the previous icon rendition.
+    stem = "LyssnaIcon-" + hashlib.sha256(source.read_bytes()).hexdigest()[:12] + "-"
     sizes = {
-        "LyssnaIcon20x20@2x.png": 40,
-        "LyssnaIcon20x20@3x.png": 60,
-        "LyssnaIcon29x29@2x.png": 58,
-        "LyssnaIcon29x29@3x.png": 87,
-        "LyssnaIcon40x40@2x.png": 80,
-        "LyssnaIcon40x40@3x.png": 120,
-        "LyssnaIcon60x60@2x.png": 120,
-        "LyssnaIcon60x60@3x.png": 180,
-        "LyssnaIcon76x76.png": 76,
-        "LyssnaIcon76x76@2x.png": 152,
-        "LyssnaIcon83.5x83.5@2x.png": 167,
-        "LyssnaIcon1024.png": 1024,
+        f"{stem}20x20@2x.png": 40,
+        f"{stem}20x20@3x.png": 60,
+        f"{stem}29x29@2x.png": 58,
+        f"{stem}29x29@3x.png": 87,
+        f"{stem}40x40@2x.png": 80,
+        f"{stem}40x40@3x.png": 120,
+        f"{stem}60x60@2x.png": 120,
+        f"{stem}60x60@3x.png": 180,
+        f"{stem}76x76.png": 76,
+        f"{stem}76x76@2x.png": 152,
+        f"{stem}83.5x83.5@2x.png": 167,
+        f"{stem}1024.png": 1024,
     }
     for filename, size in sizes.items():
         subprocess.run(
@@ -43,11 +47,11 @@ def apply_branding(app: Path) -> None:
             check=True, stdout=subprocess.DEVNULL,
         )
     for key, files in {
-        "CFBundleIcons": ["LyssnaIcon20x20", "LyssnaIcon29x29", "LyssnaIcon40x40", "LyssnaIcon60x60"],
-        "CFBundleIcons~ipad": ["LyssnaIcon60x60", "LyssnaIcon76x76", "LyssnaIcon83.5x83.5"],
+        "CFBundleIcons": [f"{stem}20x20", f"{stem}29x29", f"{stem}40x40", f"{stem}60x60"],
+        "CFBundleIcons~ipad": [f"{stem}60x60", f"{stem}76x76", f"{stem}83.5x83.5"],
     }.items():
-        info[key] = {"CFBundlePrimaryIcon": {"CFBundleIconFiles": files, "UIPrerenderedIcon": False}}
-    info["CFBundleIconFiles"] = ["LyssnaIcon60x60", "LyssnaIcon76x76", "LyssnaIcon83.5x83.5"]
+        info[key] = {"CFBundlePrimaryIcon": {"CFBundleIconFiles": files, "UIPrerenderedIcon": True}}
+    info["CFBundleIconFiles"] = [f"{stem}60x60", f"{stem}76x76", f"{stem}83.5x83.5"]
     if (info["CFBundleIdentifier"], info.get("CFBundleExecutable")) != identity:
         raise ValueError("Branding must preserve Spotify's bundle ID and executable")
     with plist.open("wb") as file:

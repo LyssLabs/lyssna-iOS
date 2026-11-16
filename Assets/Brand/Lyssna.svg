@@ -1,6 +1,38 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1 1">
-  <rect width="1" height="1" fill="#1ed760"/>
-  <g transform="translate(0.5 0.5) scale(0.02434782608695652) translate(-13.41 -11.52)" fill="none" stroke="#000" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#202320"/>
+      <stop offset="1" stop-color="#090b09"/>
+    </linearGradient>
+    <linearGradient id="green" x1="0.2" y1="0" x2="0.65" y2="1">
+      <stop stop-color="#35e779"/>
+      <stop offset="0.52" stop-color="#1ed760"/>
+      <stop offset="1" stop-color="#18bf53"/>
+    </linearGradient>
+    <radialGradient id="shine" cx="0.38" cy="0.08" r="0.85">
+      <stop stop-color="#fff" stop-opacity="0.15"/>
+      <stop offset="0.55" stop-color="#fff" stop-opacity="0.025"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="microphone" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="6" y2="24">
+      <stop stop-color="#171e18"/>
+      <stop offset="0.4" stop-color="#070d08"/>
+      <stop offset="1" stop-color="#020603"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#d4ffe3" stop-opacity="0.24"/>
+      <stop offset="0.46" stop-color="#62f394" stop-opacity="0.04"/>
+      <stop offset="1" stop-color="#06381a" stop-opacity="0.28"/>
+    </linearGradient>
+  </defs>
+  <!-- The dark tile separates the green foreground from the system icon background. -->
+  <rect width="1024" height="1024" fill="url(#tile)"/>
+  <circle cx="512" cy="523" r="365" fill="#000" opacity="0.18"/>
+  <circle cx="512" cy="512" r="365" fill="url(#green)"/>
+  <circle cx="512" cy="512" r="365" fill="url(#shine)"/>
+  <circle cx="512" cy="512" r="363.5" fill="none" stroke="url(#edge)" stroke-width="3"/>
+  <!-- Shared desktop MicVocal geometry, centered and scaled inside the disc. -->
+  <g transform="translate(512 512) scale(19.1) translate(-13.41 -11.52)" fill="none" stroke="url(#microphone)" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
     <path d="m11 7.601-5.994 8.19a1 1 0 0 0 .1 1.298l.817.818a1 1 0 0 0 1.314.087L15.09 12"/>
     <path d="M16.5 21.174C15.5 20.5 14.372 20 13 20c-2.058 0-3.928 2.356-6 2-2.072-.356-2.775-3.369-1.5-4.5"/>
     <circle cx="16" cy="7" r="5"/>

@@ -1,7 +1,7 @@
 Lyssna version updates
 ======================
 
-Use one semantic version, currently 0.1.0. No separate Lyssna build number.
+Use one semantic version, currently 0.1.1. No separate Lyssna build number.
 Bump the patch version for meaningful updates; use minor/major versions when appropriate.
 
 Keep these current values aligned:
