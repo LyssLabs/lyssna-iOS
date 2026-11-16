@@ -12,7 +12,7 @@ struct LyssnaSettingsVersionView: View {
             .foregroundColor(.gray)
             .font(.subheadline.weight(.semibold))
         } footer: {
-            Text("Lyssna \(Lyssna.version) · build \(Lyssna.buildNumber)")
+            Text("Lyssna \(Lyssna.version)")
         }
         .sheet(isPresented: $isPresentingContributorsSheet) {
             LyssnaContributorsSheetView()

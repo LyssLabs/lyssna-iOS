@@ -1,22 +1,21 @@
-Lyssna Version Update Locations
-=====================================
+Lyssna version updates
+======================
 
-When bumping the version, update these 2 files:
+Use one semantic version, currently 0.1.0. No separate Lyssna build number.
+Bump the patch version for meaningful updates; use minor/major versions when appropriate.
 
-1. control
-   - Line 3: Version: X.X.X
-   - Example: Version: 7.0.0
+Keep these current values aligned:
+- control: package Version
+- Sources/Lyssna/Tweak.x.swift: runtime version shown in settings and logs
+- NativeDownloads/targets/spotify-9.2.0.json: lyssna_version
+- NativeDownloads/src/Generated/BuildIdentity.h: diagnostic version labels
+- NativeDownloads/tools/port/make_profile.py: version used for new profiles
+- README.md: source version and example output filename
+- .github/workflows/native-downloads.yml: optional input description
 
-2. Sources/Lyssna/Tweak.x.swift
-   - static let version = "X.X.X"     (version shown in settings + debug log)
-   - static let buildNumber = "N"     (shown as "v7.0.0 (build N)" in settings
-                                       and written to the debug log header;
-                                       reset to "1" on a major version bump)
-   - Example: version = "7.0.0", buildNumber = "1"
+Historical provenance records describe their original upstream builds and keep
+those original version values. Spotify's CFBundleShortVersionString and
+CFBundleVersion identify the underlying Spotify binary and stay unchanged.
 
-Both must match for consistent versioning across:
-- .deb packages (control)
-- Tweak runtime + settings display (Tweak.x.swift)
-
-Note: build-ipa-local.sh does NOT need editing — it greps the version straight
-out of `control` (line 31) to name the output IPA.
+build-ipa-local.sh reads the Lyssna version from control and the Spotify version
+from the source IPA. Finished files use Lyssna-<version>-<spotify-version>.ipa.

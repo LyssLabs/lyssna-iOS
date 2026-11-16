@@ -100,7 +100,7 @@ struct SettingsHero: View {
                 .shadow(color: LyssnaTheme.accent.opacity(0.45), radius: 18)
             Text("Lyssna")
                 .font(.system(size: 26, weight: .bold, design: .rounded))
-            Text("v\(Lyssna.version) (build \(Lyssna.buildNumber)) · Spotify \(Lyssna.spotifyVersion)")
+            Text("v\(Lyssna.version) · Spotify \(Lyssna.spotifyVersion)")
                 .font(.footnote.monospacedDigit())
                 .foregroundColor(.secondary)
         }

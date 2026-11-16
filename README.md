@@ -24,7 +24,7 @@ Spotify's account, authentication, API endpoints, native class names, and media 
 
 ## Local builds
 
-The current source version is **7.5.0**, inherited from upstream. Personal iterations keep internal build number **1**. Both the Lyssna version and the input Spotify version appear in the output filename.
+The current Lyssna version is **0.1.0**. Meaningful updates increment the version; there is no separate Lyssna build number. Both the Lyssna version and the input Spotify version appear in the output filename.
 
 Build on macOS with Xcode command-line tools, Theos, `cyan` (pyzule-rw), `ipapatch`, `dpkg`, `ldid`, Python 3, and the dependencies used by the build scripts. Supply your own compatible decrypted Spotify IPA.
 
@@ -36,7 +36,7 @@ bash build-ipa-local.sh /absolute/path/to/Spotify-decrypted.ipa
 The default destination is:
 
 ```text
-~/Library/Mobile Documents/com~apple~CloudDocs/iOS Apps/Lyssna-7.5.0-<spotify-version>.ipa
+~/Library/Mobile Documents/com~apple~CloudDocs/iOS Apps/Lyssna-0.1.0-<spotify-version>.ipa
 ```
 
 Override it when needed:

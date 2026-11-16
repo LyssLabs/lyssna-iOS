@@ -180,8 +180,7 @@ func lyssnaEnvFlag(_ name: String) -> Bool {
 }
 
 struct Lyssna: Tweak {
-    static let version = "7.5.0"
-    static let buildNumber = "1"
+    static let version = "0.1.0"
     static let spotifyVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
     static let repoSlug = GeneratedConfig.repoSlug
     
@@ -271,7 +270,7 @@ struct Lyssna: Tweak {
         let iosVersion = UIDevice.current.systemVersion
         let deviceModel = UIDevice.current.model
 
-        writeDebugLog("=== Lyssna \(Lyssna.version) (build \(Lyssna.buildNumber)) starting ===")
+        writeDebugLog("=== Lyssna \(Lyssna.version) starting ===")
         writeDebugLog("[INIT] Spotify: \(Lyssna.spotifyVersion) (build \(spotifyBuild))")
         writeDebugLog("[INIT] iOS: \(iosVersion), Device: \(deviceModel)")
         writeDebugLog("[INIT] Hook target: \(Lyssna.hookTarget)")
