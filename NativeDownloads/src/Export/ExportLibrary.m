@@ -11,7 +11,7 @@ static NSString *component(NSString *value,NSString *fallback) {
     return !value.length||[value isEqual:@"."]||[value isEqual:@".."]?fallback:value;
 }
 static BOOL safePath(NSURL *root,NSURL *url) {
-    if(!root.isFileURL||!url.isFileURL||![root.lastPathComponent isEqual:@"Pixie Exports"])return NO;
+    if(!root.isFileURL||!url.isFileURL||![root.lastPathComponent isEqual:@"LyssnaOffline Exports"])return NO;
     NSString *base=root.path.stringByStandardizingPath,*path=url.path.stringByStandardizingPath;
     if(![path isEqual:base]&&![path hasPrefix:[base stringByAppendingString:@"/"]])return NO;
     for(NSString *at=path;at.length>1;at=at.stringByDeletingLastPathComponent) {
@@ -32,6 +32,7 @@ static sqlite3 *libraryDB;
 static NSString *libraryPath;
 static void closeLibrary(void){if(libraryDB)sqlite3_close(libraryDB);libraryDB=NULL;libraryPath=nil;}
 static BOOL openLibrary(NSURL *root,BOOL create) {
+    // Keep the existing on-disk index name for previously exported libraries.
     NSURL *url=[root URLByAppendingPathComponent:@".pixie-index.sqlite"];
     if(!safePath(root,url))return NO;
     if(libraryDB&&[libraryPath isEqual:url.path])return YES;
@@ -76,7 +77,7 @@ NSURL *SAPExportLibraryPublish(NSURL *source,NSURL *root,NSDictionary *track,NSS
         if(!safePath(root,destination)){if(error)*error=@"Unsafe export destination.";return nil;}
         NSError *failure=nil;
         if(![fm createDirectoryAtURL:folder withIntermediateDirectories:YES attributes:@{NSFileProtectionKey:NSFileProtectionCompleteUntilFirstUserAuthentication} error:&failure]){if(error)*error=failure.localizedDescription;return nil;}
-        NSString *token=NSUUID.UUID.UUIDString;NSURL *scratch=[folder URLByAppendingPathComponent:[@".pixie-publish-" stringByAppendingString:token]],*backup=[folder URLByAppendingPathComponent:[@".pixie-backup-" stringByAppendingString:token]];
+        NSString *token=NSUUID.UUID.UUIDString;NSURL *scratch=[folder URLByAppendingPathComponent:[@".lyssnaOffline-publish-" stringByAppendingString:token]],*backup=[folder URLByAppendingPathComponent:[@".lyssnaOffline-backup-" stringByAppendingString:token]];
         if(![fm copyItemAtURL:source toURL:scratch error:&failure]){if(error)*error=failure.localizedDescription;return nil;}
         BOOL transaction=sqlite3_exec(libraryDB,"BEGIN IMMEDIATE",NULL,NULL,NULL)==SQLITE_OK;sqlite3_stmt *statement=NULL;BOOL indexed=NO;
         if(transaction&&sqlite3_prepare_v2(libraryDB,"INSERT INTO exports(track_key,relative_path) VALUES(?,?) ON CONFLICT(track_key) DO UPDATE SET relative_path=excluded.relative_path",-1,&statement,NULL)==SQLITE_OK){sqlite3_bind_text(statement,1,key.UTF8String,-1,SQLITE_TRANSIENT);sqlite3_bind_text(statement,2,relative.UTF8String,-1,SQLITE_TRANSIENT);indexed=sqlite3_step(statement)==SQLITE_DONE;}
@@ -87,7 +88,7 @@ NSURL *SAPExportLibraryPublish(NSURL *source,NSURL *root,NSDictionary *track,NSS
         if(rename(scratch.path.fileSystemRepresentation,destination.path.fileSystemRepresentation)){sqlite3_exec(libraryDB,"ROLLBACK",NULL,NULL,NULL);[fm removeItemAtURL:scratch error:nil];[fm removeItemAtURL:backup error:nil];if(error)*error=@"Could not atomically publish the audio file.";return nil;}
         if(sqlite3_exec(libraryDB,"COMMIT",NULL,NULL,NULL)!=SQLITE_OK){
             sqlite3_exec(libraryDB,"ROLLBACK",NULL,NULL,NULL);BOOL restored=replacing?rename(backup.path.fileSystemRepresentation,destination.path.fileSystemRepresentation)==0:[fm removeItemAtURL:destination error:nil];
-            if(error)*error=restored?@"Index commit failed. The previous export was preserved.":@"Index commit and rollback failed; the previous file remains in a .pixie-backup file.";return nil;
+            if(error)*error=restored?@"Index commit failed. The previous export was preserved.":@"Index commit and rollback failed; the previous file remains in a .lyssnaOffline-backup file.";return nil;
         }
         [fm removeItemAtURL:backup error:nil];return destination;
     }

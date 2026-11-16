@@ -90,7 +90,7 @@ static NSString *errorName(uint64_t code) {
     }
 }
 static void publishActivity(BOOL isActive) {
-    if(isActive&&!jobTraceOperation&&SAPTraceIsActive())jobTraceOperation=SAPTraceBegin(@"download_seen_after_diagnostics_enabled",@"pixie_monitor",@{@"started_before_trace":@YES,@"uri":jobURL.absoluteString?:@""});
+    if(isActive&&!jobTraceOperation&&SAPTraceIsActive())jobTraceOperation=SAPTraceBegin(@"download_seen_after_diagnostics_enabled",@"lyssnaOffline_monitor",@{@"started_before_trace":@YES,@"uri":jobURL.absoluteString?:@""});
     NSDictionary *report = @{@"phase": phase, @"detail": detail, @"track_uri": jobURL.absoluteString ?: @"",
         @"track_title": title ?: @"", @"api": @"Offline.AddDownload", @"item_state": @(nativeState),
         @"sync_progress": @(progress), @"item_found": @(itemFound), @"status_checks": @(polls),
@@ -203,7 +203,7 @@ static void invokeSingle(SAPOfflineCall *call) {
 static void single(NSString *method,NSData *payload,void (^completion)(NSArray *)) {
     SAPOfflineCall *call=[SAPOfflineCall new];call.endpoint=jobTransport;
     call.method=method;call.payload=payload;call.completion=completion;
-    SAPTraceWithOperation(jobTraceOperation,^{call.traceOperation=SAPTraceIsActive()?SAPTraceBegin(@"download_service_call",@"pixie_download",@{@"method":method,@"track_uri":jobURL.absoluteString?:@""}):0;});
+    SAPTraceWithOperation(jobTraceOperation,^{call.traceOperation=SAPTraceIsActive()?SAPTraceBegin(@"download_service_call",@"lyssnaOffline_download",@{@"method":method,@"track_uri":jobURL.absoluteString?:@""}):0;});
     call.expected=generation;call.expectedRoute=routeGeneration;[calls addObject:call];invokeSingle(call);
 }
 static NSString *timeoutMessage(void) {
@@ -365,7 +365,7 @@ void SAPInstallTrackDownloader(void) {
 }
 void SAPDownloadCurrentTrack(void (^message)(NSString *)) {
     SAPInstallTrackDownloader();
-    SAPTraceID trace=SAPTraceCurrentOperation();if(!trace&&SAPTraceIsActive())trace=SAPTraceBegin(@"download_current_track",@"pixie_api",@{});
+    SAPTraceID trace=SAPTraceCurrentOperation();if(!trace&&SAPTraceIsActive())trace=SAPTraceBegin(@"download_current_track",@"lyssnaOffline_api",@{});
     if(SAPDiagnosticsEnabled())SAPJournalRefresh(@"download button");
     if (atomic_load(&active)) { if (message) message(SAPTrackDownloadSummary()); return; }
     id state = SAPTransportObject(SAPTransportPlayer(), @"state"), track = SAPTransportObject(state, @"track"), uri = SAPTransportObject(track, @"URI");
@@ -415,7 +415,7 @@ void SAPDownloadCurrentTrack(void (^message)(NSString *)) {
 }
 void SAPDownloadCurrentAlbum(void (^message)(NSString *)) {
     SAPInstallTrackDownloader();
-    SAPTraceID trace=SAPTraceCurrentOperation();if(!trace&&SAPTraceIsActive())trace=SAPTraceBegin(@"download_current_album",@"pixie_api",@{});
+    SAPTraceID trace=SAPTraceCurrentOperation();if(!trace&&SAPTraceIsActive())trace=SAPTraceBegin(@"download_current_album",@"lyssnaOffline_api",@{});
     id state = SAPTransportObject(SAPTransportPlayer(), @"state"), track = SAPTransportObject(state, @"track");
     id value = SAPTransportObject(track, @"albumURI");
     NSString *albumURI = [value isKindOfClass:NSURL.class] ? [value absoluteString] :

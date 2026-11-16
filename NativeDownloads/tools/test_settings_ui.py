@@ -1,4 +1,4 @@
-"""Compile opt-in settings/artist UIKit fixtures against the current Pixie modules.
+"""Compile opt-in settings/artist UIKit fixtures against the current LyssnaOffline modules.
 
 The default and --compile-only paths never query simctl, install, or launch.
 Use --run explicitly only when runtime UI testing has been authorized.
@@ -11,7 +11,7 @@ import plistlib
 import shutil
 import subprocess
 import time
-from pixie_target import ROOT, include_directories, resolve_source, source_group
+from lyssnaOffline_target import ROOT, include_directories, resolve_source, source_group
 
 
 def run(*args, check=True):
@@ -25,13 +25,13 @@ def run(*args, check=True):
 def compile_fixture(name, out, sdk, target):
     folder = out / name
     folder.mkdir(parents=True)
-    bundle = f"local.spotify.pixie.{name}.fixture"
-    app = folder / "PixieUIFixture.app"
+    bundle = f"local.spotify.lyssnaOffline.{name}.fixture"
+    app = folder / "LyssnaOfflineUIFixture.app"
     app.mkdir()
     includes = ["-I" + str(p) for p in include_directories()]
     common = ["xcrun", "clang", "-target", target, "-isysroot", sdk, "-fobjc-arc", "-std=gnu11", "-DSAP_TESTING", *includes]
     if name == "settings":
-        sources = [resolve_source(s) for s in ("PixieManagerSettings.m", "PixiePageController.m", "DiagnosticsPreferences.m", "Localization.m", "DiagnosticTrace.m", "NativeKeyTrace.m", "WireProto.m")]
+        sources = [resolve_source(s) for s in ("LyssnaOfflineManagerSettings.m", "LyssnaOfflinePageController.m", "DiagnosticsPreferences.m", "Localization.m", "DiagnosticTrace.m", "NativeKeyTrace.m", "WireProto.m")]
         sources.extend((ROOT / "tests/trace_platform_stub.m", ROOT / "tests/SettingsFixtureActions.m"))
         objects = []
         for source in sources:
@@ -40,13 +40,13 @@ def compile_fixture(name, out, sdk, target):
             objects.append(obj)
         run("xcrun", "swiftc", "-swift-version", "5", "-parse-as-library", "-target", target,
             "-sdk", sdk, *includes, "-import-objc-header", ROOT / "tests/SettingsFixtureBridge.h",
-            ROOT / "tests/SettingsFixture.swift", *objects, "-framework", "UIKit", "-framework", "SwiftUI", "-o", app / "PixieUIFixture")
+            ROOT / "tests/SettingsFixture.swift", *objects, "-framework", "UIKit", "-framework", "SwiftUI", "-o", app / "LyssnaOfflineUIFixture")
         scene = "SAPFixtureSceneDelegate"
     else:
         sources = [*source_group("artist_ui"), resolve_source("WireProto.m"), ROOT / "tests/ArtistDownloadsUIFixture.m"]
-        run(*common, *sources, "-framework", "UIKit", "-framework", "QuartzCore", "-framework", "ImageIO", "-framework", "CoreText", "-framework", "CoreGraphics", "-o", app / "PixieUIFixture")
+        run(*common, *sources, "-framework", "UIKit", "-framework", "QuartzCore", "-framework", "ImageIO", "-framework", "CoreText", "-framework", "CoreGraphics", "-o", app / "LyssnaOfflineUIFixture")
         scene = "ArtistPickerFixtureScene"
-    info = {"CFBundleIdentifier": bundle, "CFBundleExecutable": "PixieUIFixture", "CFBundleName": "Pixie UI Fixture",
+    info = {"CFBundleIdentifier": bundle, "CFBundleExecutable": "LyssnaOfflineUIFixture", "CFBundleName": "LyssnaOffline UI Fixture",
             "CFBundleVersion": "1", "CFBundleShortVersionString": "1", "CFBundlePackageType": "APPL",
             "CFBundleLocalizations": ["en"], "CFBundleDevelopmentRegion": "en", "LSRequiresIPhoneOS": True,
             "UIDeviceFamily": [1], "UILaunchScreen": {}, "UISupportedInterfaceOrientations": ["UIInterfaceOrientationPortrait"],

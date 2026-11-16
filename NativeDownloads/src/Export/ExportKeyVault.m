@@ -12,17 +12,17 @@ static BOOL (^testWrite)(NSString *,NSData *);
 static NSData *(^testRead)(NSString *);
 #endif
 static void initialize(void){static dispatch_once_t once;dispatch_once(&once,^{
-    queue=dispatch_queue_create("com.pixie.export-key-vault",DISPATCH_QUEUE_SERIAL);
+    queue=dispatch_queue_create("com.lyssnaOffline.export-key-vault",DISPATCH_QUEUE_SERIAL);
     pending=[NSMutableDictionary dictionary];namespaces=[NSMutableDictionary dictionary];saved=[NSMutableDictionary dictionary];
 });}
 static BOOL validNamespace(NSString *value){return [value isKindOfClass:NSString.class]&&value.length==40&&[value rangeOfCharacterFromSet:[NSCharacterSet characterSetWithCharactersInString:@"0123456789abcdef"].invertedSet].location==NSNotFound;}
 static NSString *identifier(NSData *file){if(file.length!=20)return nil;NSMutableString *s=[NSMutableString string];const uint8_t *p=file.bytes;for(unsigned i=0;i<20;i++)[s appendFormat:@"%02x",p[i]];return s;}
 static NSDictionary *query(NSString *name){
     if(!service){
-        NSUserDefaults *defaults=NSUserDefaults.standardUserDefaults;NSString *installation=[defaults stringForKey:@"PixieExportVaultInstallation"];
-        if(!installation.length){installation=NSUUID.UUID.UUIDString;[defaults setObject:installation forKey:@"PixieExportVaultInstallation"];}
+        NSUserDefaults *defaults=NSUserDefaults.standardUserDefaults;NSString *installation=[defaults stringForKey:@"LyssnaOfflineExportVaultInstallation"];
+        if(!installation.length){installation=NSUUID.UUID.UUIDString;[defaults setObject:installation forKey:@"LyssnaOfflineExportVaultInstallation"];}
         // A new app container cannot read keys left by an earlier installation.
-        service=[@"com.pixie.export.v1." stringByAppendingString:installation];
+        service=[@"com.lyssnaOffline.export.v1." stringByAppendingString:installation];
     }
     return @{(__bridge id)kSecClass:(__bridge id)kSecClassGenericPassword,(__bridge id)kSecAttrService:service,(__bridge id)kSecAttrAccount:name};
 }

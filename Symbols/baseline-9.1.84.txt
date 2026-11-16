@@ -1,4 +1,4 @@
-# eevee-symbol-dump v1
+# lyssna-symbol-dump v1
 # source: decrypted Spotify 9.1.84 (build 918402428) — refreshed on each tracked release
 # format: one entry per line under each [bucket]; sorted, deduped
 

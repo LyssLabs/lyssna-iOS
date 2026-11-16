@@ -22,7 +22,7 @@ static void *queueKey=&queueKey;
 static void initialize(void) {
     static dispatch_once_t once;
     dispatch_once(&once,^{
-        worker=dispatch_queue_create("app.pixie.export.cache-index",dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL,QOS_CLASS_UTILITY,0));
+        worker=dispatch_queue_create("app.lyssnaOffline.export.cache-index",dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL,QOS_CLASS_UTILITY,0));
         dispatch_queue_set_specific(worker,queueKey,queueKey,NULL);
         pending=[NSMutableDictionary dictionary];
     });
@@ -70,7 +70,7 @@ static BOOL openDatabase(void) {
 #ifdef SAP_TESTING
     if(!path)path=@":memory:";
 #else
-    if(!path)path=[NSHomeDirectory() stringByAppendingPathComponent:@"Library/Application Support/PixieExport/cache-index.sqlite"];
+    if(!path)path=[NSHomeDirectory() stringByAppendingPathComponent:@"Library/Application Support/LyssnaOfflineExport/cache-index.sqlite"];
 #endif
     NSDictionary *attributes=nil;
 #if TARGET_OS_IPHONE
@@ -78,7 +78,7 @@ static BOOL openDatabase(void) {
 #endif
     if(![path isEqual:@":memory:"]&&![NSFileManager.defaultManager createDirectoryAtPath:path.stringByDeletingLastPathComponent withIntermediateDirectories:YES attributes:attributes error:NULL])return NO;
 #if TARGET_OS_IPHONE
-    // Existing PixieExport directories must also establish inheritance for WAL/SHM.
+    // Existing LyssnaOfflineExport directories must also establish inheritance for WAL/SHM.
     if(![NSFileManager.defaultManager setAttributes:attributes ofItemAtPath:path.stringByDeletingLastPathComponent error:NULL])return NO;
 #endif
     if(sqlite3_open_v2(path.fileSystemRepresentation,&database,SQLITE_OPEN_READWRITE|SQLITE_OPEN_CREATE|SQLITE_OPEN_NOMUTEX,NULL)!=SQLITE_OK){closeDatabase();return NO;}

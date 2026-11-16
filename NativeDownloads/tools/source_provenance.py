@@ -2,7 +2,7 @@
 from pathlib import Path
 import hashlib
 import json
-from pixie_target import PROFILE, ROOT
+from lyssnaOffline_target import PROFILE, ROOT
 
 
 def snapshot():
@@ -24,9 +24,9 @@ def snapshot():
 def main():
     value = {"release": PROFILE["id"], "spotify_version": PROFILE["spotify_version"],
              "spotify_build": PROFILE["spotify_build"], "spotify_uuid": PROFILE["uuid"],
-             "eevee_version": PROFILE["eevee_version"], "pixie_version": PROFILE["pixie_version"],
+             "lyssna_version": PROFILE["lyssna_version"], "lyssnaOffline_version": PROFILE["lyssnaOffline_version"],
              "source_sha256_by_file": snapshot()}
-    (ROOT / f"provenance-pixie-v{PROFILE['pixie_version']}.json").write_text(json.dumps(value, indent=2) + "\n")
+    (ROOT / f"provenance-lyssnaOffline-v{PROFILE['lyssnaOffline_version']}.json").write_text(json.dumps(value, indent=2) + "\n")
     print(f'Recorded {len(value["source_sha256_by_file"])} source files')
 
 

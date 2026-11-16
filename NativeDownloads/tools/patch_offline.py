@@ -1,4 +1,4 @@
-"""Disable the supplied Eevee reminder's guarded target lookup.
+"""Disable the supplied Lyssna reminder's guarded target lookup.
 
 The single same-length class-name edit makes the existing 9.1.x activation
 check return early, preserving Spotify's original offlining action handler.
@@ -9,7 +9,7 @@ DISABLED = b"Xffline_ContentOffliningUIImpl.ContentOffliningUIHelperImplementati
 
 def patch_reminder(data: bytes):
     if data.count(TARGET) != 1 or len(TARGET) != len(DISABLED):
-        raise ValueError("Expected exactly one known Eevee offlining reminder target")
+        raise ValueError("Expected exactly one known Lyssna offlining reminder target")
     offset = data.index(TARGET)
     result = data[:offset] + DISABLED + data[offset + len(TARGET):]
     if len(result) != len(data) or result.count(TARGET) != 0 or result.count(DISABLED) != 1:

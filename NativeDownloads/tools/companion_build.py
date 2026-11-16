@@ -1,9 +1,9 @@
-"""Compile SpotifyAudioProbe.dylib (the Pixie companion) for the current target."""
+"""Compile SpotifyAudioProbe.dylib (the LyssnaOffline companion) for the current target."""
 from pathlib import Path
 import subprocess
 
 from build_native_share import build_native_share
-from pixie_target import companion_sources, include_directories
+from lyssnaOffline_target import companion_sources, include_directories
 
 FRAMEWORKS = ("Foundation", "UIKit", "AudioToolbox", "AVFAudio", "CoreGraphics", "AVFoundation", "CoreMedia",
               "Network", "ImageIO", "QuartzCore", "LinkPresentation", "Security", "MessageUI", "UniformTypeIdentifiers")

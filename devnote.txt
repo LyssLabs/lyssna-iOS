@@ -1,3 +1,7 @@
-To ensure stability, always download official EeveeSpotifyReincarnated IPA files exclusively from our official Telegram channel (@compiledipas) or our official GitHub releases page.
+Lyssna for iOS
 
-Do not obtain IPAs from unauthorized sources such as moe.mohkg1017.pro, @iosdecrypted, @user_hidden_files, @tkdashen, @iosjumo, or @ioscrackvn. Stay safe!
+Personal builds with custom lyrics, playback controls, and AirPlay receiver labels.
+
+Branding matches the Lyssna desktop app. Spotify account and native playback integration retain their original identity.
+
+Built on EeveeSpotifyReincarnated and its contributors. See the repository README and license notices for attribution.

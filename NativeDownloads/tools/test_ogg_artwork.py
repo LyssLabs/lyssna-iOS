@@ -6,7 +6,7 @@ import os
 import struct
 import subprocess
 import tempfile
-from pixie_target import ROOT,resolve_source
+from lyssnaOffline_target import ROOT,resolve_source
 
 
 def crc(data):
@@ -76,7 +76,7 @@ def comments(packet):
 
 def main():
     source=(ROOT/'tests/fixtures/export-tone-10s.ogg').read_bytes();original=packets(source)
-    with tempfile.TemporaryDirectory(prefix='pixie-ogg-artwork-') as folder:
+    with tempfile.TemporaryDirectory(prefix='lyssnaOffline-ogg-artwork-') as folder:
         root=Path(folder);binary=root/'test';harness=root/'test.c'
         harness.write_text('''#include "OggArtwork.h"
 #include "OggExport.h"

@@ -143,7 +143,7 @@ def main():
     buckets = bucket_strings(data)
 
     lines = [
-        "# eevee-symbol-dump v1",
+        "# lyssna-symbol-dump v1",
         "# source: %s" % args.input,
         "# format: one entry per line under each [bucket]; sorted, deduped",
     ]

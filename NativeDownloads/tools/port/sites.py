@@ -1,4 +1,4 @@
-"""Collect the native sites of a Pixie target profile with their windows for matching."""
+"""Collect the native sites of a LyssnaOffline target profile with their windows for matching."""
 import json, sys
 def sites(profile_path):
     p = json.load(open(profile_path))

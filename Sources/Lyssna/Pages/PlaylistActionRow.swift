@@ -1,0 +1,545 @@
+import LyssnaC
+import UIKit
+
+// Glass header controls forwarding to Spotify, with a native horizontal action strip.
+@available(iOS 26.0, *)
+final class PlaylistActionRow: UIView {
+    static weak var current: PlaylistActionRow?
+    var compactLayout = false {
+        didSet { if compactLayout != oldValue { placeCuration(); setNeedsLayout() } }
+    }
+    let curation = PlaylistCurationBar()
+    private var compactButtons: [UIButton] {
+        [playButton, shuffledPlayButton] + [curation.compactAddButton].compactMap { $0 }
+            + (download == nil ? [] : [downloadButton])
+            + [shuffleButton, artistDownloadButton, addButton, shareButton].filter { !$0.isHidden }
+            + curation.compactSecondaryButtons
+    }
+    var compactHeight: CGFloat { compactHeight(for: bounds.width) }
+    private func compactSide(for width: CGFloat) -> CGFloat { max(22, min(40, (width - 44) / 5)) }
+    func compactHeight(for width: CGFloat) -> CGFloat {
+        let columns = 5
+        let rows = (compactButtons.count + columns - 1) / columns
+        return CGFloat(rows) * compactSide(for: width) + CGFloat(max(0, rows - 1)) * 6 + 8 + (followControl == nil ? 0 : 48)
+    }
+    weak var download: UIView? {
+        didSet {
+            guard download !== oldValue else { return }
+            downloadObservations.removeAll()
+            guard let download else { return }
+            let changed: () -> Void = { [weak self] in
+                DispatchQueue.main.async { [weak self] in self?.sync() }
+            }
+            downloadObservations = [
+                download.observe(\.accessibilityIdentifier, options: [.new]) { _, _ in changed() },
+                download.observe(\.accessibilityLabel, options: [.new]) { _, _ in changed() },
+                download.observe(\.accessibilityValue, options: [.new]) { _, _ in changed() },
+                download.observe(\.tintColor, options: [.new]) { _, _ in changed() }
+            ]
+        }
+    }
+    private var downloadObservations = [NSKeyValueObservation]()
+    weak var shuffle: UIView?
+    weak var play: UIView?
+    weak var add: UIView?
+    weak var share: UIView?
+    weak var explore: UIView?
+    private(set) weak var sourceRoot: UIView?
+    private var previewSize = CGSize.zero
+    private var preservesPreviewLayout = false
+    private weak var mountedDownload: UIView?
+    private weak var mountedPreview: UIView?
+    private var previewObservations = [NSKeyValueObservation]()
+    private var previewUpdatePending = false
+    weak var followControl: UIView?
+    weak var anchor: UIView?
+    // Spotify's single play button moves into the nav bar once its row collapses; ours steps aside and lets it show there.
+    weak var playHolder: UIView?
+    weak var controlsRow: UIView?
+    private var scrollObservation: NSKeyValueObservation?
+    private weak var followed: UIScrollView?
+    private var faded = false
+    private let actions = PlaylistActionsScrollView()
+
+    // Resolve a cached native download control, including granular state IDs.
+    static func downloadControl(in root: UIView) -> UIView? {
+        PlaylistDownloadControl.resolve(in: root)
+    }
+
+    func hosts(_ source: UIView?) -> Bool { source?.superview === actions }
+
+    // Mount each native control once per binding. Spotify keeps its original
+    // button, icon subtree and action. The shared scroller owns row geometry.
+    func bindNative(download: UIView?, preview: UIView?, root: UIView, preservePreviewLayout: Bool = false) {
+        let previewChanged = sourceRoot !== root || explore !== preview || preservesPreviewLayout != preservePreviewLayout
+        preservesPreviewLayout = preservePreviewLayout
+        let changed = previewChanged || self.download !== download
+        if previewChanged { previewObservations.removeAll() }
+        if sourceRoot !== root { mountedDownload = nil; mountedPreview = nil }
+        if self.download !== download, let old = self.download, hosts(old) { old.removeFromSuperview() }
+        if explore !== preview, let old = explore, hosts(old) { old.removeFromSuperview() }
+        sourceRoot = root
+        self.download = download
+        explore = preview
+        if let download, mountedDownload !== download {
+            PlaylistDownloadControl.style(download)
+            PlaylistDownloadControl.hosted(download, from: root)
+            download.translatesAutoresizingMaskIntoConstraints = true
+            actions.addSubview(download)
+            mountedDownload = download
+            setNeedsLayout()
+        }
+        if previewChanged, let preview {
+            // Spotify initially exposes a hidden, 8-point placeholder. Its
+            // component fills and unhides it asynchronously, without another
+            // controller layout. Watch only that pending component, then stop.
+            previewObservations = [
+                preview.observe(\.isHidden) { [weak self] _, _ in self?.previewBecameReady() },
+                preview.observe(\.bounds) { [weak self] _, _ in self?.previewBecameReady() },
+                preview.observe(\.center) { [weak self] _, _ in self?.previewBecameReady() }
+            ]
+        }
+        mountPreviewIfReady()
+        if changed { actions.contentOffset = .zero; setNeedsLayout() }
+    }
+
+    // Hosted outside Spotify's header (adding views there stalls its layout), so it follows the header's scroll itself.
+    func follow(_ scrollView: UIScrollView?) {
+        guard let scrollView, scrollView !== followed else { return }
+        followed = scrollView
+        scrollObservation = scrollView.observe(\.contentOffset) { [weak self] _, _ in self?.place() }
+    }
+
+    func place() {
+        placeCuration()
+        guard !compactLayout else { alpha = 1; return }
+        guard let host = superview, host.window != nil else { return }
+        if let anchor, anchor.window != nil, anchor.bounds.height > 0 {
+            let frame = anchor.convert(anchor.bounds, to: host)
+            let target = CGRect(x: 0, y: frame.midY - 24, width: host.bounds.width, height: 48)
+            if self.frame != target { self.frame = target }
+        }
+        let pinned = collapsed() || convert(bounds, to: nil).minY < (window?.safeAreaInsets.top ?? 0) + 50
+        playHolder.map { holder in
+            if holder.alpha != (pinned ? 1 : 0) { holder.alpha = pinned ? 1 : 0 }
+            // A transparent view is already skipped by hit-testing. Disabling interaction as well is only safe on a
+            // wrapper: on pages where Spotify's play button has no wrapper the holder is the button itself, and
+            // switching it off would also switch off the control this row forwards taps to.
+            if holder === play {
+                if !holder.isUserInteractionEnabled { holder.isUserInteractionEnabled = true }
+            } else {
+                holder.isUserInteractionEnabled = pinned
+            }
+        }
+        guard pinned != faded else { return }
+        faded = pinned
+        UIView.animate(withDuration: 0.2, delay: 0, options: [.beginFromCurrentState, .allowUserInteraction]) {
+            self.alpha = pinned ? 0 : 1
+        }
+    }
+
+    func placeCuration() {
+        guard curation.hasActions else { return }
+        curation.compact = compactLayout
+        if compactLayout {
+            if bounds.height != compactHeight {
+                frame.size.height = compactHeight
+                LandscapePlaylistHeader.actionsDidResize(self)
+            }
+            if curation.superview !== self { addSubview(curation) }
+            curation.frame = bounds
+            curation.isHidden = false
+        } else if let host = superview, let toolbar = curation.toolbar, toolbar.window != nil {
+            if curation.superview !== host { host.addSubview(curation) }
+            let anchor = toolbar.convert(toolbar.bounds, to: host)
+            curation.frame = CGRect(x: 16, y: anchor.midY - 22, width: max(0, host.bounds.width - 32), height: 44)
+            curation.isHidden = !curation.frame.intersects(host.bounds)
+        } else { curation.isHidden = true }
+        curation.setNeedsLayout()
+    }
+
+    private func collapsed() -> Bool {
+        var view = controlsRow
+        while let current = view, current !== superview {
+            if current.isHidden || current.alpha < 0.5 { return true }
+            view = current.superview
+        }
+        return false
+    }
+
+    private let downloadButton = PlaylistActionRow.circle("arrow.down")
+    private let shuffleButton = PlaylistActionRow.circle("shuffle")
+    private let shuffleDot: UIView = {
+        let dot = UIView(frame: CGRect(x: 0, y: 0, width: 4, height: 4))
+        dot.layer.cornerRadius = 2
+        dot.isUserInteractionEnabled = false
+        dot.isHidden = true
+        return dot
+    }()
+    private let artistDownloadButton = PlaylistActionRow.circle("arrow.down")
+    private let addButton = PlaylistActionRow.circle("plus")
+    private weak var artistHeader: UIView?
+    private let followButton: UIButton = {
+        let button = PlaylistActionRow.circle("person.badge.plus")
+        button.isHidden = true
+        return button
+    }()
+    private let shareButton = PlaylistActionRow.circle("square.and.arrow.up")
+    private let shuffledPlayButton: UIButton = {
+        let button = PlaylistActionRow.circle("shuffle")
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 17, height: 17)).image { context in
+            context.cgContext.scaleBy(x: 17.0 / 25.0, y: 17.0 / 25.0)
+            UIImage(systemName: "shuffle", withConfiguration: UIImage.SymbolConfiguration(weight: .semibold))?
+                .draw(in: CGRect(x: 0, y: 1, width: 22, height: 21))
+            context.cgContext.setBlendMode(.clear)
+            context.cgContext.fillEllipse(in: CGRect(x: 14, y: 14, width: 12, height: 12))
+            context.cgContext.setBlendMode(.normal)
+            UIImage(systemName: "play.fill")?.draw(in: CGRect(x: 17, y: 17, width: 8, height: 8))
+        }
+        button.configuration?.image = image.withRenderingMode(.alwaysTemplate)
+        button.accessibilityLabel = "Play shuffled"
+        button.isHidden = true
+        return button
+    }()
+    private let playButton: UIButton = {
+        var config = UIButton.Configuration.prominentGlass()
+        config.cornerStyle = .capsule
+        config.baseForegroundColor = .black
+        config.imagePadding = 8
+        config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer {
+            var attributes = $0
+            attributes.font = .systemFont(ofSize: 16, weight: .semibold)
+            return attributes
+        }
+        let button = UIButton(configuration: config)
+        button.tintColor = .white
+        return button
+    }()
+
+    private static let playImage = UIImage(systemName: "play.fill", withConfiguration: UIImage.SymbolConfiguration(pointSize: 15, weight: .bold))
+    private static let pauseImage = UIImage(systemName: "pause.fill", withConfiguration: UIImage.SymbolConfiguration(pointSize: 15, weight: .bold))
+    private static let followImage = UIImage(systemName: "person.badge.plus", withConfiguration: UIImage.SymbolConfiguration(pointSize: 17, weight: .semibold))
+    private static let followedImage = UIImage(systemName: "person.fill.checkmark", withConfiguration: UIImage.SymbolConfiguration(pointSize: 17, weight: .semibold))
+    private static let plusImage = UIImage(systemName: "plus", withConfiguration: UIImage.SymbolConfiguration(pointSize: 17, weight: .semibold))
+    private static let checkImage = UIImage(systemName: "checkmark", withConfiguration: UIImage.SymbolConfiguration(pointSize: 17, weight: .semibold))
+    private static let downloadImage = UIImage(systemName: "arrow.down", withConfiguration: UIImage.SymbolConfiguration(pointSize: 17, weight: .semibold))
+    private static let downloadedImage = UIImage(systemName: "arrow.down.circle.fill", withConfiguration: UIImage.SymbolConfiguration(pointSize: 17, weight: .semibold))
+    private static let downloadingImage = UIImage(systemName: "arrow.down.circle.dotted", withConfiguration: UIImage.SymbolConfiguration(pointSize: 17, weight: .semibold))
+    private static let playTitle = "playlist_play".localized
+    private static let pauseTitle = "playlist_pause".localized
+
+    private static func circle(_ symbol: String) -> UIButton {
+        var config = UIButton.Configuration.glass()
+        config.cornerStyle = .capsule
+        config.baseForegroundColor = .white
+        config.contentInsets = .zero
+        config.image = UIImage(systemName: symbol, withConfiguration: UIImage.SymbolConfiguration(pointSize: 17, weight: .semibold))
+        return UIButton(configuration: config)
+    }
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        overrideUserInterfaceStyle = .dark
+        actions.accessibilityIdentifier = "Lyssna.Playlist.Actions"
+        actions.showsHorizontalScrollIndicator = false
+        actions.alwaysBounceVertical = false
+        actions.isDirectionalLockEnabled = true
+        actions.delaysContentTouches = false
+        actions.contentInsetAdjustmentBehavior = .never
+        addSubview(actions)
+        addSubview(playButton)
+        artistDownloadButton.accessibilityIdentifier = "Lyssna.Artist.Download"
+        artistDownloadButton.accessibilityLabel = "Artist downloads"
+        artistDownloadButton.isHidden = true
+        actions.addSubview(artistDownloadButton)
+        for (button, name) in [(shuffleButton,"Shuffle"),(addButton,"Add"),(shareButton,"Share"),(followButton,"Follow")] {
+            button.accessibilityIdentifier = "Lyssna.Playlist." + name
+            actions.addSubview(button)
+        }
+        playButton.accessibilityIdentifier = "Lyssna.Playlist.Play"
+        addSubview(shuffledPlayButton)
+        addSubview(downloadButton)
+        downloadButton.isHidden = true
+        downloadButton.addAction(UIAction { [weak self] _ in self?.forward(self?.download, "download") }, for: .primaryActionTriggered)
+        shuffleButton.addSubview(shuffleDot)
+        shuffleButton.addAction(UIAction { [weak self] _ in self?.forward(self?.shuffle, "shuffle") }, for: .primaryActionTriggered)
+        playButton.addAction(UIAction { [weak self] _ in self?.forward(self?.play, "play") }, for: .primaryActionTriggered)
+        shuffledPlayButton.addAction(UIAction { [weak self] _ in self?.playShuffled() }, for: .primaryActionTriggered)
+        addButton.addAction(UIAction { [weak self] _ in self?.forward(self?.add, "add") }, for: .primaryActionTriggered)
+        followButton.addAction(UIAction { [weak self] _ in self?.forward(self?.followControl, "follow") }, for: .primaryActionTriggered)
+        shareButton.addAction(UIAction { [weak self] _ in self?.forward(self?.share, "share") }, for: .primaryActionTriggered)
+    }
+
+    required init?(coder: NSCoder) { nil }
+
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        let hit = super.hitTest(point, with: event)
+        return hit === self ? nil : hit
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        // Keep the local landscape grid while upstream owns the portrait strip.
+        actions.isHidden = compactLayout
+        let buttons = [shuffleButton, artistDownloadButton, addButton, shareButton, followButton]
+        for button in buttons {
+            let host: UIView = compactLayout ? self : actions
+            if button.superview !== host { host.addSubview(button) }
+        }
+        downloadButton.isHidden = !compactLayout || download == nil
+        // Leave room for Liquid Glass's press effect; the grid has ten-point side gutters.
+        clipsToBounds = false
+        curation.clipsToBounds = false
+        shuffledPlayButton.isHidden = !compactLayout
+        if compactLayout {
+            curation.frame = bounds
+            let circles = compactButtons
+            let side = compactSide(for: bounds.width), gap: CGFloat = 6
+            let columns = 5
+            let gridWidth = CGFloat(columns) * side + CGFloat(columns - 1) * gap
+            let left = max(0, (bounds.width - gridWidth) / 2)
+            for (index, button) in circles.enumerated() {
+                let frame = CGRect(x: left + CGFloat(index % columns) * (side + gap), y: 4 + CGFloat(index / columns) * (side + gap), width: side, height: side)
+                button.frame = button.superview === curation ? curation.convert(frame, from: self) : frame
+                var config = button.configuration
+                config?.preferredSymbolConfigurationForImage = UIImage.SymbolConfiguration(pointSize: min(17, side * 0.53), weight: .semibold)
+                if button === playButton { config?.title = nil }
+                if button.configuration != config { button.configuration = config }
+            }
+            shuffleDot.center = CGPoint(x: side / 2, y: side - 7)
+            followButton.frame = CGRect(x: 0, y: compactHeight - 40, width: bounds.width, height: 40)
+            return
+        }
+        let side: CGFloat = 48, gap: CGFloat = 12, edge: CGFloat = 16
+        let y = (bounds.height - side) / 2
+        let playWidth = min(max(140, playButton.sizeThatFits(CGSize(width: 220, height: side)).width), max(96, bounds.width * 0.45))
+        let playFrame = CGRect(x: bounds.width - edge - playWidth, y: y, width: playWidth, height: side)
+        if playButton.frame != playFrame { playButton.frame = playFrame }
+        let start = preservesPreviewLayout ? nativePreviewEnd(in: self).map { max(edge, $0 + gap) } ?? edge : edge
+        let stripFrame = CGRect(x: start, y: y, width: max(0, playFrame.minX - gap - start), height: side)
+        if actions.frame != stripFrame { actions.frame = stripFrame }
+        var x: CGFloat = 0
+        for native in [explore, download].compactMap({ $0 }) where hosts(native) && !native.isHidden {
+            let size = native === explore ? previewSize : CGSize(width: side, height: side)
+            let frame = CGRect(x: x, y: (side-size.height)/2, width: size.width, height: size.height)
+            if native.frame != frame { native.frame = frame }
+            x += size.width + gap
+        }
+        for button in [shuffleButton, artistDownloadButton, addButton, shareButton, followButton] where !button.isHidden {
+            let width = side
+            let frame = CGRect(x: x, y: 0, width: width, height: side)
+            if button.frame != frame { button.frame = frame }
+            x += width + gap
+        }
+        shuffleDot.center = CGPoint(x: side / 2, y: side - 7)
+        let size = CGSize(width: max(0, x - gap), height: side)
+        if actions.contentSize != size { actions.contentSize = size }
+        let offset = max(0, min(actions.contentOffset.x, size.width - actions.bounds.width))
+        if actions.contentOffset.x != offset { actions.contentOffset.x = offset }
+    }
+
+    private func previewBecameReady() {
+        guard !previewUpdatePending else { return }
+        previewUpdatePending = true
+        // Complete Spotify's current native component/layout update first.
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.previewUpdatePending = false
+            if self.preservesPreviewLayout {
+                self.place()
+                self.sync()
+                self.setNeedsLayout()
+            } else {
+                self.mountPreviewIfReady()
+            }
+        }
+    }
+
+    // Artist previews belong to Spotify's asynchronous Element/OverflowStack
+    // layout. Keep their hierarchy and geometry entirely under native ownership.
+    private func nativePreviewEnd(in host: UIView) -> CGFloat? {
+        guard let preview = explore, preview.window != nil else { return nil }
+        var ancestor: UIView? = preview
+        while let node = ancestor, node !== superview {
+            if node.isHidden || node.alpha < 0.01 { return nil }
+            ancestor = node.superview
+        }
+        var box = preview.convert(preview.bounds, to: host)
+        // Native artwork/hit areas may extend outside their small layout shell.
+        var queue = preview.subviews
+        var index = 0
+        while index < queue.count {
+            let child = queue[index]; index += 1
+            guard !child.isHidden, child.alpha > 0.01 else { continue }
+            if child is UIControl || child is UIImageView {
+                box = box.union(child.convert(child.bounds, to: host))
+            }
+            queue += child.subviews
+        }
+        return box.isEmpty ? nil : box.maxX
+    }
+
+    private func mountPreviewIfReady() {
+        guard !preservesPreviewLayout, let preview = explore, mountedPreview !== preview,
+              !preview.isHidden, preview.bounds.width > 1, preview.bounds.height > 1 else { return }
+        previewSize = preview.bounds.size
+        previewObservations.removeAll()
+        preview.translatesAutoresizingMaskIntoConstraints = true
+        actions.addSubview(preview)
+        mountedPreview = preview
+        setNeedsLayout()
+        }
+
+    @discardableResult private func forward(_ source: UIView?, _ name: String) -> Bool {
+        guard let source else { return false }
+        let fired = LyssnaFireTap(source)
+        if !fired { lyssnaLog("[Lyssna][Glass] Playlist %@ tap FAILED", name) }
+        for delay in [0.4, 1.2, 2.5] { DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in self?.sync() } }
+        return fired
+    }
+
+    private func playShuffled() {
+        sync()
+        guard shuffle != nil, play != nil else { return }
+        if shuffleDot.isHidden, !forward(shuffle, "shuffle") { return }
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            let label = play?.accessibilityLabel ?? play?.lyssnaFirst(UIControl.self)?.accessibilityLabel ?? ""
+            if !label.lowercased().contains("pause") { forward(play, "play shuffled") }
+        }
+    }
+
+    func bindArtistDownloads(header: UIView?) {
+        artistHeader = header
+        guard let header else {
+            if !artistDownloadButton.isHidden { artistDownloadButton.isHidden = true; setNeedsLayout() }
+            return
+        }
+        let wasHidden = artistDownloadButton.isHidden
+        LyssnaOfflineUpdateArtistDownloads(header, artistDownloadButton)
+        if wasHidden != artistDownloadButton.isHidden { setNeedsLayout() }
+    }
+
+    // Fallback when Spotify's collection state is not available: what the original control exposes.
+    // The wording of its accessibility label differs between Spotify versions, so the label is only
+    // one of several signals.
+    private static func savedState(of control: UIView) -> Bool? {
+        let text = [control.accessibilityLabel, control.accessibilityValue].compactMap { $0?.lowercased() }.joined(separator: " ")
+        if ["remove", "added to", "saved to", "saved in", "unsave", "unlike", "in your library", "in library"].contains(where: text.contains) { return true }
+        if (control as? UIControl)?.isSelected == true || control.accessibilityTraits.contains(.selected) { return true }
+        if ["add to", "save to", "save ", "like"].contains(where: text.contains) { return false }
+        var queue: [(Any, Int)] = [(control, 0)]
+        while !queue.isEmpty {
+            let (value, depth) = queue.removeFirst()
+            for child in Mirror(reflecting: value).children {
+                guard let label = child.label?.lowercased() else { continue }
+                let description = String(describing: child.value).lowercased()
+                if label.contains("state") {
+                    if ["notadded", "notsaved", "unsaved", "unadded"].contains(where: description.contains) { return false }
+                    if ["added", "saved"].contains(where: description.contains) { return true }
+                    if depth < 2 { queue.append((child.value, depth + 1)) }
+                } else if label.contains("added") || label.contains("saved") || label.contains("selected") {
+                    if description == "true" { return true }
+                    if description == "false" { return false }
+                }
+            }
+        }
+        return nil
+    }
+
+    private func pageURI(from root: UIView) -> String? {
+        let selector = NSSelectorFromString("spt_pageURI")
+        var responder: UIResponder? = root
+        while let current = responder {
+            if let controller = current as? UIViewController, controller.responds(to: selector),
+               let value = controller.perform(selector)?.takeUnretainedValue() {
+                let text = (value as? URL)?.absoluteString ?? value as? String
+                if let text, text.hasPrefix("spotify:album:") || text.hasPrefix("spotify:playlist:") { return text }
+            }
+            responder = current.next
+        }
+        return nil
+    }
+
+    func sync() {
+        shuffledPlayButton.isEnabled = shuffle != nil && play != nil
+        let downloadHidden = !compactLayout || download == nil
+        if downloadButton.isHidden != downloadHidden { downloadButton.isHidden = downloadHidden; setNeedsLayout() }
+        let downloadState = ((download?.accessibilityLabel ?? "") + " " + (download?.accessibilityValue ?? "")).lowercased()
+        let selected = (download as? UIControl)?.isSelected == true
+            || download?.lyssnaFirst(UIControl.self, where: { $0.isSelected }) != nil
+            || download?.accessibilityTraits.contains(.selected) == true
+        let greenIcon = download?.lyssnaFirst(UIImageView.self, where: {
+            var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+            return $0.tintColor.getRed(&r, green: &g, blue: &b, alpha: &a) && a > 0.5 && g > r + 0.15 && g > b + 0.1
+        }) != nil
+        let identifier = download?.accessibilityIdentifier ?? ""
+        let downloaded = identifier.hasSuffix(".Downloaded") || selected || greenIcon || downloadState.contains("remove") || (downloadState.contains("downloaded") && !downloadState.contains("not downloaded"))
+        let downloading = !downloaded && identifier.hasSuffix(".Downloading")
+        var downloadConfig = downloadButton.configuration
+        downloadConfig?.image = downloaded ? Self.downloadedImage : downloading ? Self.downloadingImage : Self.downloadImage
+        downloadConfig?.baseForegroundColor = downloaded ? UIColor(red: 25.0 / 255, green: 181.0 / 255, blue: 81.0 / 255, alpha: 1) : .white
+        if downloadButton.configuration != downloadConfig { downloadButton.configuration = downloadConfig }
+        downloadButton.accessibilityLabel = download?.accessibilityLabel
+        downloadButton.accessibilityValue = downloaded ? "Downloaded" : downloading ? "Downloading" : download?.accessibilityValue
+        downloadButton.accessibilityTraits = downloaded ? [.button, .selected] : .button
+        if addButton.isHidden != (add == nil) {
+            addButton.isHidden = add == nil
+            setNeedsLayout()
+        }
+        let followVisible = followControl != nil
+        var followConfig = followButton.configuration
+        let state = artistHeader.map { header in
+            LyssnaOfflineArtistFollowing(header) { [weak self] in self?.sync() }
+        } ?? -1
+        followConfig?.image = state == 1 ? Self.followedImage : Self.followImage
+        followConfig?.baseForegroundColor = state == 1 ? Theme.accent : .white
+        followButton.accessibilityLabel = followControl?.accessibilityLabel ?? followControl?.lyssnaFirst(UILabel.self)?.text
+        if followButton.configuration != followConfig || followButton.isHidden == followVisible {
+            followButton.configuration = followConfig
+            followButton.isHidden = !followVisible
+            setNeedsLayout()
+        }
+        if shareButton.isHidden != (share == nil) {
+            shareButton.isHidden = share == nil
+            setNeedsLayout()
+        }
+        let playing = (play?.accessibilityLabel ?? play?.lyssnaFirst(UIControl.self)?.accessibilityLabel)?.lowercased().contains("pause") == true
+        var config = playButton.configuration
+        config?.image = playing ? Self.pauseImage : Self.playImage
+        config?.title = compactLayout ? nil : playing ? Self.pauseTitle : Self.playTitle
+        if !compactLayout { config?.preferredSymbolConfigurationForImage = nil }
+        playButton.accessibilityLabel = playing ? Self.pauseTitle : Self.playTitle
+        if playButton.configuration != config { playButton.configuration = config }
+
+        // The album / playlist state comes from Spotify's collection state, which reports every change.
+        let saved = sourceRoot.flatMap { root in pageURI(from: root).map { LyssnaOfflineSavedState(root, $0) { [weak self] in self?.sync() } } } ?? -1
+        let liked = saved >= 0 ? saved == 1 : add.flatMap(Self.savedState) ?? false
+        var addConfig = addButton.configuration
+        addConfig?.image = liked ? Self.checkImage : Self.plusImage
+        addConfig?.baseForegroundColor = liked ? Theme.color(Theme.spotifyGreen) : .white
+        if addButton.configuration != addConfig { addButton.configuration = addConfig }
+
+        // Spotify marks shuffle with a small dot under its icon and swaps the icon for smart shuffle.
+        let dot = shuffle?.lyssnaFirst(UIView.self) { $0.bounds.width <= 8 && $0.bounds.width > 0 && $0.backgroundColor != nil && !$0.isHidden && $0.alpha > 0.01 }
+        let shuffled = (shuffle as? UIControl)?.isSelected == true
+            || shuffle?.lyssnaFirst(UIControl.self, where: { $0.isSelected }) != nil || dot != nil
+        var shuffleConfig = shuffleButton.configuration
+        shuffleConfig?.baseForegroundColor = shuffled ? Theme.accent : .white
+        if let icon = shuffle?.lyssnaFirst(UIImageView.self, where: { $0.image != nil && $0.bounds.width >= 16 })?.image {
+            shuffleConfig?.image = icon.withRenderingMode(.alwaysTemplate)
+        }
+        shuffleDot.isHidden = !shuffled
+        shuffleDot.backgroundColor = Theme.accent
+        if shuffleButton.configuration != shuffleConfig { shuffleButton.configuration = shuffleConfig }
+    }
+}
+
+// The standard scroll-view cancellation policy lets a swipe starting on a
+// button cancel its tap, while the Play button stays outside the scroll view.
+@available(iOS 26.0, *)
+private final class PlaylistActionsScrollView: UIScrollView {
+    override func touchesShouldCancel(in view: UIView) -> Bool {
+        view is UIControl || super.touchesShouldCancel(in: view)
+    }
+}

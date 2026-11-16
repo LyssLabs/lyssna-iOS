@@ -2,7 +2,7 @@
 #import <Foundation/Foundation.h>
 
 NS_ASSUME_NONNULL_BEGIN
-// Prepared M4A/Ogg files in app temporary storage or Documents/Pixie Exports.
+// Prepared M4A/Ogg files in app temporary storage or Documents/LyssnaOffline Exports.
 // Required: file (file NSURL), uri (track identity).
 // Optional: name, artist_name, album_name, artist_uri, album_uri, number, disc, category.
 // Artist/release grouping uses entity URIs when present, otherwise display names.

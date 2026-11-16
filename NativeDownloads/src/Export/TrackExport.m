@@ -33,9 +33,9 @@ extern NSString *SAPExportTestHome;
 static SAPExportJob *activeJob;
 static atomic_bool exporting;
 static void SAPStartAudioExportURI(NSString *,NSString *,BOOL,void (^)(NSString *),void (^)(NSUInteger,void (^)(BOOL)),void (^)(NSArray<NSURL *> *,NSString *));
-static dispatch_queue_t exportWorkQueue(void){static dispatch_queue_t queue;static dispatch_once_t once;dispatch_once(&once,^{queue=dispatch_queue_create("com.pixie.export-work",DISPATCH_QUEUE_SERIAL);});return queue;}
-static NSURL *exportLibraryRoot(void){return [NSURL fileURLWithPath:[NSHomeDirectory() stringByAppendingPathComponent:@"Documents/Pixie Exports"] isDirectory:YES];}
-NSString *SAPAudioExportFormat(void){return [[NSUserDefaults.standardUserDefaults stringForKey:@"PixieExportFormat"] isEqual:@"ogg"]?@"ogg":@"m4a";}
+static dispatch_queue_t exportWorkQueue(void){static dispatch_queue_t queue;static dispatch_once_t once;dispatch_once(&once,^{queue=dispatch_queue_create("com.lyssnaOffline.export-work",DISPATCH_QUEUE_SERIAL);});return queue;}
+static NSURL *exportLibraryRoot(void){return [NSURL fileURLWithPath:[NSHomeDirectory() stringByAppendingPathComponent:@"Documents/LyssnaOffline Exports"] isDirectory:YES];}
+NSString *SAPAudioExportFormat(void){return [[NSUserDefaults.standardUserDefaults stringForKey:@"LyssnaOfflineExportFormat"] isEqual:@"ogg"]?@"ogg":@"m4a";}
 
 static NSArray *fileIDs(NSArray *fields){NSMutableArray *ids=[NSMutableArray array];for(NSDictionary *f in fields)if([f[@"number"]unsignedIntValue]==12&&[f[@"wire"]unsignedIntValue]==2){NSData *d=SAPProtoData(SAPProtoFields(f[@"value"]),1);if(d.length==20&&![ids containsObject:d])[ids addObject:d];}return ids;}
 static NSDictionary *trackMetadata(NSData *data,NSString *uri) {
@@ -179,7 +179,7 @@ static NSDictionary *trackMetadata(NSData *data,NSString *uri) {
 }
 - (void)reuseExportsOrPrepareDownload {
     dispatch_async(exportWorkQueue(),^{@autoreleasepool {
-        NSURL *root=[NSURL fileURLWithPath:[NSHomeDirectory() stringByAppendingPathComponent:@"Documents/Pixie Exports"] isDirectory:YES];
+        NSURL *root=[NSURL fileURLWithPath:[NSHomeDirectory() stringByAppendingPathComponent:@"Documents/LyssnaOffline Exports"] isDirectory:YES];
         NSMutableArray *existing=[NSMutableArray array];
         for(NSDictionary *track in self.resolved) {
             if(atomic_load(&self->ended))return;
@@ -342,7 +342,7 @@ static NSDictionary *trackMetadata(NSData *data,NSString *uri) {
             return;
         }
         if(!self.commandRequested && !self.observingExisting) {
-            // Respect a download already started by Spotify or another Pixie action.
+            // Respect a download already started by Spotify or another LyssnaOffline action.
             if(active && active+complete==wanted.count){self.observingExisting=YES;[self status:@"Waiting for the existing Spotify download…"];[self schedulePoll];}
             else [self requestNativeDownload];
             return;
@@ -556,8 +556,8 @@ static NSDictionary *trackMetadata(NSData *data,NSString *uri) {
 - (void)writeFiles {
     if(self.deadline){dispatch_source_cancel(self.deadline);self.deadline=nil;}
     dispatch_async(exportWorkQueue(),^{@autoreleasepool {
-        NSFileManager *fm=NSFileManager.defaultManager;NSURL *root=[[NSURL fileURLWithPath:[NSHomeDirectory() stringByAppendingPathComponent:@"Documents"] isDirectory:YES] URLByAppendingPathComponent:@"Pixie Exports" isDirectory:YES];
-        NSURL *folder=[NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:[@"PixieExport-" stringByAppendingString:NSUUID.UUID.UUIDString]] isDirectory:YES];NSError *error=nil;
+        NSFileManager *fm=NSFileManager.defaultManager;NSURL *root=[[NSURL fileURLWithPath:[NSHomeDirectory() stringByAppendingPathComponent:@"Documents"] isDirectory:YES] URLByAppendingPathComponent:@"LyssnaOffline Exports" isDirectory:YES];
+        NSURL *folder=[NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:[@"LyssnaOfflineExport-" stringByAppendingString:NSUUID.UUID.UUIDString]] isDirectory:YES];NSError *error=nil;
         if(![fm createDirectoryAtURL:folder withIntermediateDirectories:YES attributes:@{NSFileProtectionKey:NSFileProtectionCompleteUntilFirstUserAuthentication} error:&error]){[self finish:nil error:error.localizedDescription];return;}
         NSMutableArray *files=[NSMutableArray array];NSMutableIndexSet *reused=[NSMutableIndexSet indexSet];NSString *failure=nil;NSUInteger number=0;BOOL cacheFailed=NO;NSDictionary *cacheEvidence=nil,*failedTrack=nil;
         dispatch_group_t conversions=dispatch_group_create();dispatch_semaphore_t window=dispatch_semaphore_create(SAPM4AConversionParallelLimit);
@@ -674,4 +674,4 @@ void SAPCancelAudioExport(void) {
     void (^cancel)(void)=^{SAPExportJob *job=activeJob;if(job&&!job.finished)[job finish:nil error:@"Audio export cancelled."];};
     if(NSThread.isMainThread)cancel();else dispatch_async(dispatch_get_main_queue(),cancel);
 }
-NSDictionary *SAPTrackExportReport(void){NSMutableDictionary *report=[SAPExportKeyStoreReport() mutableCopy];[report addEntriesFromDictionary:@{@"native_cache_mapping":SAPNativeCacheMapReport(),@"cache_storage_contexts":SAPCacheStorageKeyReport(),@"cache_container_reader":@"validated native header and complete block table before audio validation",@"native_boundaries":SAPExportObservationReport(),@"active":@(atomic_load(&exporting)),@"download_monitor":@"album contexts or individual track items; two complete samples required",@"no_start_timeout_seconds":@30,@"artwork":@"embedded JPEG front cover: M4A iTunes metadata or Ogg METADATA_BLOCK_PICTURE; up to 640 pixels",@"supported_audio":@"complete Ogg Vorbis; optional M4A conversion",@"export_format":SAPAudioExportFormat(),@"cache_index":SAPExportCacheIndexReport(),@"key_vault":SAPExportKeyVaultReport(),@"key_storage":@"bounded process cache and device-only Keychain, scoped to installation and native storage namespace; never logged or shared",@"media_decode":@"bounded candidate list (key/IV/counter/skip); full Ogg validation decides",@"export_directory":@"Documents/Pixie Exports",@"process_id":@(NSProcessInfo.processInfo.processIdentifier),@"cipher_caller_diagnostics":@"bounded scalar caller/length observations while Diagnostics is enabled; no media key is read by this diagnostic",@"runtime_verified":@NO}];return report;}
+NSDictionary *SAPTrackExportReport(void){NSMutableDictionary *report=[SAPExportKeyStoreReport() mutableCopy];[report addEntriesFromDictionary:@{@"native_cache_mapping":SAPNativeCacheMapReport(),@"cache_storage_contexts":SAPCacheStorageKeyReport(),@"cache_container_reader":@"validated native header and complete block table before audio validation",@"native_boundaries":SAPExportObservationReport(),@"active":@(atomic_load(&exporting)),@"download_monitor":@"album contexts or individual track items; two complete samples required",@"no_start_timeout_seconds":@30,@"artwork":@"embedded JPEG front cover: M4A iTunes metadata or Ogg METADATA_BLOCK_PICTURE; up to 640 pixels",@"supported_audio":@"complete Ogg Vorbis; optional M4A conversion",@"export_format":SAPAudioExportFormat(),@"cache_index":SAPExportCacheIndexReport(),@"key_vault":SAPExportKeyVaultReport(),@"key_storage":@"bounded process cache and device-only Keychain, scoped to installation and native storage namespace; never logged or shared",@"media_decode":@"bounded candidate list (key/IV/counter/skip); full Ogg validation decides",@"export_directory":@"Documents/LyssnaOffline Exports",@"process_id":@(NSProcessInfo.processInfo.processIdentifier),@"cipher_caller_diagnostics":@"bounded scalar caller/length observations while Diagnostics is enabled; no media key is read by this diagnostic",@"runtime_verified":@NO}];return report;}

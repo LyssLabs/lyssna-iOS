@@ -98,12 +98,12 @@ static NSString *routeStorePath(void) {
     // Host fixtures never touch a real profile unless they inject a directory.
     return routeStoreDirectory.length?[routeStoreDirectory stringByAppendingPathComponent:@"read-routes.plist"]:nil;
 #else
-    return [NSHomeDirectory() stringByAppendingPathComponent:@"Library/Application Support/Pixie/read-routes.plist"];
+    return [NSHomeDirectory() stringByAppendingPathComponent:@"Library/Application Support/LyssnaOffline/read-routes.plist"];
 #endif
 }
 static dispatch_queue_t routeStoreQueue(void) {
     static dispatch_queue_t queue;static dispatch_once_t once;
-    dispatch_once(&once,^{queue=dispatch_queue_create("Pixie.read-route-store",dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL,QOS_CLASS_UTILITY,0));});
+    dispatch_once(&once,^{queue=dispatch_queue_create("LyssnaOffline.read-route-store",dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL,QOS_CLASS_UTILITY,0));});
     return queue;
 }
 static void ensureRouteClasses(void) {
@@ -184,7 +184,7 @@ NSArray *SAPTransportCandidatesForRead(NSString *service,NSString *method) {
         for(id endpoint in available)
             if([result indexOfObjectIdenticalTo:endpoint]==NSNotFound && [NSStringFromClass(object_getClass(endpoint))isEqual:className])[result addObject:endpoint];
     // Without a learned route, Offline reads try every non-bridge endpoint before the native C++ bridge.
-    // Device logs (two sessions, 41 attempts) show the bridge never answers Pixie's Offline Get* reads,
+    // Device logs (two sessions, 41 attempts) show the bridge never answers LyssnaOffline's Offline Get* reads,
     // while Cosmos answered ~99% of ~100; leading with the bridge cost a full 8 s deadline before the
     // Cosmos fallback. The bridge stays a last resort; commands and other services are unaffected.
     BOOL offline=[service isEqual:SAPOfflineService];NSMutableArray *bridges=NSMutableArray.array;

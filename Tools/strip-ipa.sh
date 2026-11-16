@@ -2,12 +2,12 @@
 # Strip Watch + every native .appex from Spotify.ipa so sideload resigners
 # don't choke on entitlements they can't satisfy. Modifies in place.
 #
-# Usage: Tools/strip-ipa.sh path/to/Eevee.ipa
+# Usage: Tools/strip-ipa.sh path/to/Lyssna.ipa
 
 set -euo pipefail
 
 IPA="${1:-}"
-[ -f "$IPA" ] || { echo "usage: $0 path/to/Eevee.ipa" >&2; exit 1; }
+[ -f "$IPA" ] || { echo "usage: $0 path/to/Lyssna.ipa" >&2; exit 1; }
 
 IPA_ABS=$(cd "$(dirname "$IPA")" && pwd)/$(basename "$IPA")
 WORK=$(mktemp -d); trap 'rm -rf "$WORK"' EXIT

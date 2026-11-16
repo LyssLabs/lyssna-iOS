@@ -43,7 +43,7 @@ static void researchDump(FILE *payload,NSString *fileID,NSString *cacheID,unsign
                          uint64_t expected,size_t candidates,NSUInteger previewHits) {
     if(!payload||!fileID.length||!cacheID.length)return;
     NSFileManager *fm=NSFileManager.defaultManager;
-    NSURL *root=[[NSURL fileURLWithPath:[NSHomeDirectory() stringByAppendingPathComponent:@"Documents"] isDirectory:YES] URLByAppendingPathComponent:@"Pixie Research" isDirectory:YES];
+    NSURL *root=[[NSURL fileURLWithPath:[NSHomeDirectory() stringByAppendingPathComponent:@"Documents"] isDirectory:YES] URLByAppendingPathComponent:@"LyssnaOffline Research" isDirectory:YES];
     if(![fm createDirectoryAtURL:root withIntermediateDirectories:YES attributes:@{NSFileProtectionKey:NSFileProtectionCompleteUntilFirstUserAuthentication} error:nil])return;
     NSString *base=[NSString stringWithFormat:@"%@-%@",fileID,cacheID];
     NSURL *payloadURL=[root URLByAppendingPathComponent:[base stringByAppendingString:@".payload"]];

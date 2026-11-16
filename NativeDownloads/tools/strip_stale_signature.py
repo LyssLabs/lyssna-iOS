@@ -1,6 +1,6 @@
 """Remove dead bytes between the last __LINKEDIT table and the code signature of a Mach-O executable.
 
-The executable inside the assembled EeveeSpotify IPA keeps Spotify's original 1.8 MB code signature as dead
+The executable inside the assembled Lyssna IPA keeps Spotify's original 1.8 MB code signature as dead
 data in front of the signature that was added later. LiveContainer ignores it, but the ldid used by AltStore
 asserts that the string table ends within 0x10 bytes of the signature (ldid.cpp: end >= size - 0x10), so a
 direct AltStore install of such an IPA fails. The tail is cut and LC_CODE_SIGNATURE is removed so that

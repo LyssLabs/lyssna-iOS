@@ -42,7 +42,7 @@ static const uintptr_t setterOffset=SAP_TARGET_SETTER-UINT64_C(0x100000000);
 static atomic_int requestedKeyMode=ATOMIC_VAR_INIT(0);
 static atomic_int lastSelectorMode=ATOMIC_VAR_INIT(-1);
 static atomic_uint_fast64_t selectorReads[2];
-static NSString *const keyModePreference=@"PixieOfflineKeyRequestMode";
+static NSString *const keyModePreference=@"LyssnaOfflineOfflineKeyRequestMode";
 static int configuredKeyMode(void) {return atomic_load_explicit(&requestedKeyMode,memory_order_relaxed);}
 
 // Called by the pre-installed, verified Spotify call-site trampoline. Its hot

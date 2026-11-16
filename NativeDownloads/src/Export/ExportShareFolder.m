@@ -17,7 +17,7 @@ NSURL *SAPCreateAudioShareFolder(NSArray<NSURL *> *files,NSString *name,NSString
     while([name lengthOfBytesUsingEncoding:NSUTF8StringEncoding]>180)name=[name substringToIndex:[name rangeOfComposedCharacterSequenceAtIndex:name.length-1].location];
     if([name isEqual:@"."]||[name isEqual:@".."]||!name.length)name=@"Album";
     NSFileManager *fm=NSFileManager.defaultManager;
-    SAPExportShareLease *lease=[SAPExportShareLease new];lease.root=[NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:[@"PixieShare-" stringByAppendingString:NSUUID.UUID.UUIDString]] isDirectory:YES];
+    SAPExportShareLease *lease=[SAPExportShareLease new];lease.root=[NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:[@"LyssnaOfflineShare-" stringByAppendingString:NSUUID.UUID.UUIDString]] isDirectory:YES];
     NSURL *folder=[lease.root URLByAppendingPathComponent:name isDirectory:YES];NSError *failure=nil;
     if(![fm createDirectoryAtURL:folder withIntermediateDirectories:YES attributes:@{NSFileProtectionKey:NSFileProtectionCompleteUntilFirstUserAuthentication} error:&failure]){if(error)*error=failure.localizedDescription;return nil;}
     NSMutableSet *linked=[NSMutableSet set];

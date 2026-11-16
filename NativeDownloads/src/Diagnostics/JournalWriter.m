@@ -26,12 +26,12 @@ NSURL *SAPJournalDocumentsURL(NSString *name) {
 void SAPJournalWriterAppendActionData(NSData *line) {
         if(actionStream && actionBytes>maximumActionBytes) {
             fclose(actionStream);actionStream=NULL;actionBytes=0;
-            NSURL *current=SAPJournalDocumentsURL(@"PixieActions.log"),*previous=SAPJournalDocumentsURL(@"PixieActions.1.log");
+            NSURL *current=SAPJournalDocumentsURL(@"LyssnaOfflineActions.log"),*previous=SAPJournalDocumentsURL(@"LyssnaOfflineActions.1.log");
             [NSFileManager.defaultManager removeItemAtURL:previous error:NULL];
             [NSFileManager.defaultManager moveItemAtURL:current toURL:previous error:NULL];
         }
         if(!actionStream) {
-            actionStream=fopen(SAPJournalDocumentsURL(@"PixieActions.log").fileSystemRepresentation,"a");
+            actionStream=fopen(SAPJournalDocumentsURL(@"LyssnaOfflineActions.log").fileSystemRepresentation,"a");
             if(!actionStream)return;
             actionBytes=(unsigned long long)ftello(actionStream);
         }

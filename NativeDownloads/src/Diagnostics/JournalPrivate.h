@@ -88,7 +88,7 @@ static inline NSString *reasonName(uint64_t reason) {
 static inline BOOL pendingState(NSUInteger state) { return state == 4 || state == 5 || state == 6; }
 static inline BOOL failedState(NSUInteger state) { return state == 1 || state == 7; }
 // Periodic GetItems polling covers only work in progress: tracks Spotify reports
-// as queued/waiting/downloading, and tracks Pixie asked to download whose first
+// as queued/waiting/downloading, and tracks LyssnaOffline asked to download whose first
 // native state has not arrived. Tracks merely seen in a catalog stream, already
 // downloaded, failed or not requested are never re-queried.
 static inline BOOL SAPJournalNeedsPoll(BOOL seen, NSUInteger state, NSUInteger addRequests) {

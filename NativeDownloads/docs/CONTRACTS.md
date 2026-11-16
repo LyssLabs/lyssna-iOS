@@ -1,4 +1,4 @@
-# Pixie data and lifetime contracts
+# LyssnaOffline data and lifetime contracts
 
 ## Thread ownership
 

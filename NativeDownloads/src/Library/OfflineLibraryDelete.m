@@ -170,7 +170,7 @@ static NSArray *albumTracks(NSData *data,NSString *uri,NSMutableDictionary *proo
 }
 - (BOOL)allSelected:(NSArray *)items{if(!items.count)return NO;for(id u in items)if(!valid(u,@"track")||![self.selected containsObject:u])return NO;return YES;}
 - (void)begin{
- if(SAPTraceIsActive()){self.traceGeneration=SAPTraceGeneration();self.traceID=SAPTraceBegin(@"offline_library_delete",@"pixie",@{@"input_count":@([self.input isKindOfClass:NSArray.class]?self.input.count:0),@"automatic_replay":@NO});}
+ if(SAPTraceIsActive()){self.traceGeneration=SAPTraceGeneration();self.traceID=SAPTraceBegin(@"offline_library_delete",@"lyssnaOffline",@{@"input_count":@([self.input isKindOfClass:NSArray.class]?self.input.count:0),@"automatic_replay":@NO});}
  NSMutableOrderedSet *ids=NSMutableOrderedSet.orderedSet,*albums=NSMutableOrderedSet.orderedSet;self.rows=NSMutableDictionary.dictionary;self.notes=NSMutableDictionary.dictionary;self.safeAlbums=NSMutableSet.set;self.albumMembership=NSMutableDictionary.dictionary;
  if(![self.input isKindOfClass:NSArray.class]||!self.input.count||self.input.count>10000){[self finish:@"Invalid or oversized track selection."];return;}
  for(id row in self.input){if(![row isKindOfClass:NSDictionary.class]||!valid(row[@"uri"],@"track")||(row[@"album_uri"]&&(![row[@"album_uri"]isKindOfClass:NSString.class]||([row[@"album_uri"]length]&&!valid(row[@"album_uri"],@"album"))))){[self finish:@"Invalid selected track or album identity. No commands were sent."];return;}

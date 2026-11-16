@@ -1,20 +1,20 @@
-# Translating EeveeSpotify
+# Translating Lyssna
 
-Thank you for helping translate EeveeSpotify! All UI strings live in `.strings` files inside the tweak's bundle, and every locale is community-maintained. This guide explains the layout, the rules, and how to check your work before opening a PR.
+Thank you for helping translate Lyssna! All UI strings live in `.strings` files inside the tweak's bundle, and every locale is community-maintained. This guide explains the layout, the rules, and how to check your work before opening a PR.
 
 ---
 
 ## Where translations live
 
 ```
-layout/Library/Application Support/EeveeSpotify.bundle/<locale>.lproj/Localizable.strings
+layout/Library/Application Support/Lyssna.bundle/<locale>.lproj/Localizable.strings
 ```
 
 Examples:
 
-- `layout/Library/Application Support/EeveeSpotify.bundle/en.lproj/Localizable.strings` — the **baseline** every locale is checked against
-- `layout/Library/Application Support/EeveeSpotify.bundle/uk.lproj/Localizable.strings`
-- `layout/Library/Application Support/EeveeSpotify.bundle/zh-CN.lproj/Localizable.strings`
+- `layout/Library/Application Support/Lyssna.bundle/en.lproj/Localizable.strings` — the **baseline** every locale is checked against
+- `layout/Library/Application Support/Lyssna.bundle/uk.lproj/Localizable.strings`
+- `layout/Library/Application Support/Lyssna.bundle/zh-CN.lproj/Localizable.strings`
 
 The `<locale>` folder name is a standard Apple language ID: a language code, optionally with a region/script suffix (`pt-BR`, `zh-TW`, `ar-EG`). Use an existing folder if one matches your language; otherwise create a new `<locale>.lproj` directory containing one `Localizable.strings` file.
 
@@ -27,9 +27,9 @@ The `<locale>` folder name is a standard Apple language ID: a language code, opt
 1. Copy the baseline as your starting point:
 
    ```bash
-   mkdir -p "layout/Library/Application Support/EeveeSpotify.bundle/xx.lproj"
-   cp "layout/Library/Application Support/EeveeSpotify.bundle/en.lproj/Localizable.strings" \
-      "layout/Library/Application Support/EeveeSpotify.bundle/xx.lproj/Localizable.strings"
+   mkdir -p "layout/Library/Application Support/Lyssna.bundle/xx.lproj"
+   cp "layout/Library/Application Support/Lyssna.bundle/en.lproj/Localizable.strings" \
+      "layout/Library/Application Support/Lyssna.bundle/xx.lproj/Localizable.strings"
    ```
 
 2. Translate the **value** on the right of each `=`. **Never change the key** on the left.
@@ -77,7 +77,7 @@ If the English value contains `\n`, `\t`, or similar, your translation must too.
 
 ### 5. Don't translate brand names or proper nouns
 
-Keep these as-is: `EeveeSpotify`, `Spotify`, `Musixmatch`, `PetitLyrics`, `LRCLIB`, `Genius`, `SponsorBlock`, `TrollStore`, `SideStore`, `CarPlay`, `Siri`, `Jam`, `SpicyLyrics` `AI DJ`.
+Keep these as-is: `Lyssna`, `Spotify`, `Musixmatch`, `PetitLyrics`, `LRCLIB`, `Genius`, `SponsorBlock`, `TrollStore`, `SideStore`, `CarPlay`, `Siri`, `Jam`, `SpicyLyrics` `AI DJ`.
 
 ### 6. Delete nothing, reorder nothing
 
@@ -135,7 +135,7 @@ New strings appear whenever features are added; locales drift behind the baselin
 The tweak's bundle ships an `Info.plist`. New `.lproj` folders are picked up by iOS automatically in most cases, but if your language doesn't show up in testing, add your locale to `CFBundleLocalizations` in:
 
 ```
-layout/Library/Application Support/EeveeSpotify.bundle/Info.plist
+layout/Library/Application Support/Lyssna.bundle/Info.plist
 ```
 
 ---

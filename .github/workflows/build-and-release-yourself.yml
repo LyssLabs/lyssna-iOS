@@ -9,7 +9,7 @@ on:
         required: true
         type: string
       tweak_url:
-        description: "URL to a prebuilt EeveeSpotify .deb"
+        description: "URL to a prebuilt Lyssna .deb"
         default: ""
         required: true
         type: string
@@ -53,8 +53,8 @@ jobs:
 
       - name: Download .deb
         run: |
-          wget "${{ inputs.tweak_url }}" --no-verbose -O ${{ github.workspace }}/eevee.deb
-          file_type=$(file --mime-type -b ${{ github.workspace }}/eevee.deb)
+          wget "${{ inputs.tweak_url }}" --no-verbose -O ${{ github.workspace }}/lyssna.deb
+          file_type=$(file --mime-type -b ${{ github.workspace }}/lyssna.deb)
           if [[ "$file_type" != "application/vnd.debian.binary-package" ]]; then
             echo "::error::Not a valid .deb: $file_type"; exit 1
           fi
@@ -87,15 +87,15 @@ jobs:
         run: |
           mkdir -p Outputs/IPAS
           DEB_EXTRACT="$RUNNER_TEMP/deb-extract"; mkdir -p "$DEB_EXTRACT"
-          dpkg-deb -R ${{ github.workspace }}/eevee.deb "$DEB_EXTRACT"
+          dpkg-deb -R ${{ github.workspace }}/lyssna.deb "$DEB_EXTRACT"
 
-          DYLIB_SRC=$(find "$DEB_EXTRACT" -name 'EeveeSpotify.dylib' | head -1)
-          BUNDLE_SRC=$(find "$DEB_EXTRACT" -type d -name 'EeveeSpotify.bundle' | head -1)
-          FRAMEWORK_SRC=$(find "$DEB_EXTRACT" -type d -name 'EeveeSwiftProtobuf.framework' | head -1)
+          DYLIB_SRC=$(find "$DEB_EXTRACT" -name 'Lyssna.dylib' | head -1)
+          BUNDLE_SRC=$(find "$DEB_EXTRACT" -type d -name 'Lyssna.bundle' | head -1)
+          FRAMEWORK_SRC=$(find "$DEB_EXTRACT" -type d -name 'LyssnaProtobuf.framework' | head -1)
 
           SPOT_VERSION=$(unzip -p ${{ github.workspace }}/spotify.ipa 'Payload/Spotify.app/Info.plist' \
               | plutil -extract CFBundleShortVersionString raw - 2>/dev/null || echo "unknown")
-          OUT="Outputs/IPAS/EeveeSpotify-${SPOT_VERSION}.ipa"
+          OUT="Outputs/IPAS/Lyssna-${SPOT_VERSION}.ipa"
 
           INJECT=("$DYLIB_SRC")
           [ -n "$FRAMEWORK_SRC" ] && INJECT+=("$FRAMEWORK_SRC")
@@ -153,7 +153,7 @@ jobs:
         if: ${{ inputs.upload_method == 'artifacts' || inputs.upload_method == 'both' }}
         uses: actions/upload-artifact@v4
         with:
-          name: EeveeSpotify-IPA
+          name: Lyssna-IPA
           path: |
             ${{ env.OUT_IPA }}
             ${{ env.PATCHED_OUT }}
@@ -162,7 +162,7 @@ jobs:
       - name: Upload IPA(s) to filebin.net
         if: ${{ inputs.upload_method == 'filebin' || inputs.upload_method == 'both' }}
         run: |
-          BIN="eevee-${{ github.run_id }}-${{ github.run_attempt }}"
+          BIN="lyssna-${{ github.run_id }}-${{ github.run_attempt }}"
           {
             echo "### 📦 filebin.net download"
           } >> "$GITHUB_STEP_SUMMARY"

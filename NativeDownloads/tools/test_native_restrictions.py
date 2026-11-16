@@ -3,7 +3,7 @@ from pathlib import Path
 import subprocess,struct
 from patch_native_restrictions import patch,patch_at,layout
 from zipfile import ZipFile
-root=Path(__file__).resolve().parents[1];out=Path(os.environ.get('PIXIE_TEST_BUILD_DIR',root.parent/'outputs/native-restrictions-test'));out.mkdir(parents=True,exist_ok=True)
+root=Path(__file__).resolve().parents[1];out=Path(os.environ.get('LYSSNA_OFFLINE_TEST_BUILD_DIR',root.parent/'outputs/native-restrictions-test'));out.mkdir(parents=True,exist_ok=True)
 original=out/'native-restrictions-original';updated=out/'native-restrictions-patched'
 subprocess.run(['xcrun','clang','-arch','arm64',*['-I'+str(p) for p in sorted({root/'src',*(h.parent for h in (root/'src').rglob('*.h'))})],str(root/'tests/native_restrictions.c'),str(root/'tests/native_restrictions.S'),'-Wl,-headerpad,0x10000','-o',str(original)],check=True)
 symbols=subprocess.check_output(['xcrun','nm','-n',str(original)],text=True)

@@ -81,7 +81,7 @@ NSArray *SAPInstallSpotifyTransportHooks(void) {
                     BOOL offline=[serviceName isKindOfClass:NSString.class] && [serviceName isEqual:SAPOfflineService];
                     BOOL read=[methodName isKindOfClass:NSString.class] && ([methodName hasPrefix:@"Get"] || [methodName hasPrefix:@"Subscribe"]);
                     // Stock Offline responses prove this service's route even
-                    // when logging is off. Pixie reads learn only after their
+                    // when logging is off. LyssnaOffline reads learn only after their
                     // own cancellation/attempt checks in SpotifyServiceCalls.
                     if(offline && read && !offlineHookDepth && !SAPOnTransportWorker() && callback) {
                         __weak id endpoint=self;
@@ -108,14 +108,14 @@ NSArray *SAPInstallSpotifyTransportHooks(void) {
                     }
                     SAPTraceHookCalled(object_getClass(self),command);
                     SAPTraceRPC *trace=traceHookDepth==0?SAPTraceRPCBegin(serviceName,methodName,payload,
-                        SAPJournalOnOwnQueue()?@"pixie_diagnostic_query":SAPOnTransportWorker()?@"pixie_service":@"spotify",self,[commandName hasPrefix:@"callStream:"]):nil;
+                        SAPJournalOnOwnQueue()?@"lyssnaOffline_diagnostic_query":SAPOnTransportWorker()?@"lyssnaOffline_service":@"spotify",self,[commandName hasPrefix:@"callStream:"]):nil;
                     BOOL playerCall=[serviceName isKindOfClass:NSString.class] && [serviceName isEqual:@"spotify.player.esperanto.proto.ContextPlayer"];
                     if(SAPDiagnosticsEnabled() && playerCall && playerHookDepth==0)SAPTraceWithOperation(trace?trace.identifier:SAPTraceCurrentOperation(),^{SAPObservePlayerRequest(serviceName,methodName,payload);});
                     BOOL outer=offlineHookDepth==0, own=SAPJournalOnOwnQueue();
                     BOOL menu=SAPOnTransportWorker();
                     if (SAPDiagnosticsEnabled() && offline && outer && !own && callback) {
                         __weak id endpoint = self;
-                        // Observe Offline calls from Pixie and Spotify without changing replies.
+                        // Observe Offline calls from LyssnaOffline and Spotify without changing replies.
                         NSString *observed = [methodName isKindOfClass:NSString.class] ? [methodName copy] : nil;
                         NSData *sent = [payload isKindOfClass:NSData.class] ? [payload copy] : nil;
                         NSString *origin = [NSString stringWithFormat:@"%@:%@", menu ? @"menu" : @"app",

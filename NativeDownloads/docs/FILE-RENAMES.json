@@ -1,6 +1,6 @@
 {
-  "UI/AudioProbeUI.m": "UI/PixieManagerActions.m",
-  "UI/DownloadSettingsUI.m": "UI/PixieManagerSettings.m",
+  "UI/AudioProbeUI.m": "UI/LyssnaOfflineManagerActions.m",
+  "UI/DownloadSettingsUI.m": "UI/LyssnaOfflineManagerSettings.m",
   "Diagnostics/Diagnostics.m": "Diagnostics/DiagnosticsPreferences.m",
   "Diagnostics/SupportLog.m": "Diagnostics/SupportLogSerializer.m",
   "Downloads/TrackDownload.m": "Downloads/ManualTrackDownload.m",

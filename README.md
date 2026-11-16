@@ -1,142 +1,78 @@
-![Banner](Images/banner.png?)
+<p align="center">
+  <img src="Images/Lyssna.png" width="128" alt="Lyssna microphone logo">
+</p>
 
-# EeveeSpotifyReincarnated
+# Lyssna for iOS
 
-**Maintainers:** [jaydenjcpy](https://github.com/jaydenjcpy) & [faroukbmiled](https://github.com/faroukbmiled) & [Mod4](https://github.com/M0d-4) <br />
-**Last Update:** `11/15/26` **Spotify Version:** `9.2.0`
+Lyssna is a personal iOS customization of Spotify, with branding shared with the [Lyssna desktop app](../lyssna-app). It combines a custom lyrics player, playback and appearance controls, offline-download tools, and richer AirPlay receiver labels.
 
-This tweak makes Spotify think you have a Premium subscription, granting free listening, just like Spotilife, and provides some additional features like custom lyrics.
+The app appears as **Lyssna** on the Home Screen and in its settings. Its device bundle identifier remains **`com.spotify.client`** so Spotify's native integration continues to use the same identity. Installing it with that identifier replaces the existing Spotify app rather than creating a separate app. Signing tools may apply their own bundle-identifier changes; choose their original-ID option when available.
 
-> [!NOTE]
-> The original EeveeSpotify repository was disabled due to a [DMCA takedown](https://github.com/github/dmca/blob/master/2025/08/2025-08-14-spotify.md). This repository will not contain IPA packages in the repo itself.
+This repository is for personal builds. It does not publish formal releases or promise features that require a Spotify subscription on Spotify's servers.
 
-## Custom Lyrics Support
+## Features
 
-**Spotify 9.1.56 and above** - Full custom lyrics functionality is available with the following providers:
-- **SpicyLyrics**
-- **Musixmatch\***
-- **LRCLIB**
-- **Genius**
-- **PetitLyrics**
+- Custom lyrics from multiple sources, with source priority, timing controls, fonts, word timing, and landscape artwork or Canvas.
+- A dedicated lyrics view with optional Space Gravity motion effects.
+- Appearance controls for tabs, player controls, pages, artwork, and Liquid Glass layouts.
+- Playback controls, telemetry options, clean sharing links, and rating-prompt controls.
+- Offline-download management inherited from the upstream implementation. Availability depends on the Spotify version and account capabilities.
+- Spotify Connect labels that reflect the selected AirPlay receiver. Supported model metadata produces labels such as **Main Bedroom (HomePod mini)**; missing metadata leaves the receiver's name visible.
+- A Lyssna microphone icon and consistent branding throughout the custom settings, modules, resource bundle, logs, and package.
 
-<sup>*Musixmatch requires you to input a user token to retrieve lyrics. EeveeSpotifyReincarnated supports requesting an Anonymous Token to retrieve this functionality.</sup>
+Spotify's account, authentication, API endpoints, native class names, and media protocols remain Spotify integrations. Lyssna branding does not change server-side entitlements or guarantee that any specific feature works across every Spotify version.
 
-## How to build an EeveeSpotify IPA using Github actions
-> [!NOTE]
-> If this your first time, complete following steps before starting:
->
-> 1. Fork this repository using the fork button on the top right
-> 2. On your forked repository, go to **Repository Settings** > **Actions**, enable **Read and Write** permissions.
+## Local builds
 
-<details>
-  <summary>How to build the EeveeSpotify IPA</summary>
-  <ol>
-    <li>Click on <strong>Sync fork</strong>, and if your branch is out-of-date, click on <strong>Update branch</strong>.</li>
-    <li>Navigate to the <strong>Actions tab</strong> in your forked repository and select <strong>Create IPA Packages</strong> if you're on desktop/widescreen. Tap on <strong>All Workflows</strong> and select <strong>Create IPA Packages</strong> if you're on mobile/portrait.</li>
-    <li>Click the <strong>Run workflow</strong> button located on the right side.</li>
-    <li>Prepare a decrypted .ipa file <em>(we cannot provide this due to legal reasons)</em>, then upload it to a file provider (e.g., filebin.net, filemail.com, or Dropbox is recommended). Paste the URL of the decrypted IPA file in the provided field.</li>
-    <li><strong>NOTE:</strong> Make sure to provide a direct download link to the file, not a link to a webpage. Otherwise, the process will fail.</li>
-    <li>Go to the releases page of the EeveeSpotify repository (<strong>NOT</strong> the fork). Hold and copy the link of the .deb file, which corresponds to your phone's architecture.</li>
-    <li>Make sure all inputs are correct, then click <strong>Run workflow</strong> to start the process.</li>
-    <li>Wait for the build to finish. You can download the EeveeSpotify IPA from the releases section of your forked repo. (If you can't find the releases section, go to your forked repo and add /releases to the URL, i.e., github.com/user/EeveeSpotifyReborn/releases.)</li>
-  </ol>
-</details>
+The current source version is **7.5.0**, inherited from upstream. Personal iterations keep internal build number **1**. Both the Lyssna version and the input Spotify version appear in the output filename.
 
-## The History
+Build on macOS with Xcode command-line tools, Theos, `cyan` (pyzule-rw), `ipapatch`, `dpkg`, `ldid`, Python 3, and the dependencies used by the build scripts. Supply your own compatible decrypted Spotify IPA.
 
-In January 2024, Spotilife, the only tweak to get Spotify Premium, stopped working on new Spotify versions. [whoeevee](https://github.com/whoeevee) decompiled Spotilife, reverse-engineered Spotify, intercepted requests, etc., and created EeveeSpotify.
+```sh
+export THEOS="$HOME/theos"
+bash build-ipa-local.sh /absolute/path/to/Spotify-decrypted.ipa
+```
 
-In August 2025, the original EeveeSpotify repository was disabled following a [DMCA takedown](https://github.com/github/dmca/blob/master/2025/08/2025-08-14-spotify.md) by Spotify.
+The default destination is:
 
-In December 2025, whoeevee, the maintainer of the EeveeSpotify tweak at the time, announced he would be discontinuing the tweak because of the burden of keeping up with Spotify's constantly changing architectures. Soon after, [Skye (@Meeep1)](https://github.com/Meeep1) forked the original Eevee repo and continued developing the tweak to support newer Spotify versions, under the project name EeveeSpotifyRevivedPublic.
+```text
+~/Library/Mobile Documents/com~apple~CloudDocs/iOS Apps/Lyssna-7.5.0-<spotify-version>.ipa
+```
 
-In March 2026, users of the latest EeveeSpotifyRevivedPublic release (v9.1.28) experienced constant logout issues and reported them to Skye, but EeveeSpotifyRevivedPublic hadn't released any newer updates. During March, I was constantly annoyed by the logout issue and decided to take matters into my own hands: I forked EeveeSpotifyRevivedPublic, fixed the logout issue, and that fork eventually became this repository — **EeveeSpotifyReincarnated** — continuing the legacy of EeveeSpotify for newer versions of Spotify.
+Override it when needed:
 
-Today, EeveeSpotifyReincarnated is maintained by [jaydenjcpy](https://github.com/jaydenjcpy), [faroukbmiled](https://github.com/faroukbmiled), and [Mod4](https://github.com/M0d-4), keeping the tweak alive as Spotify keeps changing.
+```sh
+LYSSNA_IPA_OUTPUT="/absolute/path/to/Lyssna.ipa" \
+  bash build-ipa-local.sh /absolute/path/to/Spotify-decrypted.ipa
+```
 
-## Restrictions
+`LYSSNA_MINIMAL_IPA=1` omits optional app extensions for signing setups that require one App ID. The previous `EEVEE_IPA_OUTPUT` and `EEVEE_MINIMAL_IPA` environment variables remain compatibility aliases.
 
-Please refrain from opening issues about the following features, as they are server-sided and will **NEVER** work:
+The pipeline builds `Lyssna.dylib` and the isolated `LyssnaProtobuf.framework`, packages `Lyssna.bundle`, injects the sideload compatibility library, and applies the app name, primary icon, localized display names, and AirPlay Bonjour declaration before publishing the completed IPA. It preserves the input app's bundle identifier and executable name. The package ID `com.lyssna.spotify` identifies the tweak package; it is separate from the app's device bundle ID.
 
-- Very High/Lossless audio quality
-- Jam (hosting a Spotify Jam and joining it remotely requires Premium; only joining in-person works)
-- AI DJ/Playlist
-- Spotify Connect (When using Spotify Connect, the device will act as a remote control and stream directly to the connected device. This is a server-sided limitation and is beyond the control of EeveeSpotify, so it will behave as if you have a Free subscription while using this feature.)
+Sign and install the resulting IPA using your preferred compatible installer. No signed IPA is committed to this repository. Existing packaging workflows remain available but are not run or published automatically as part of local development.
 
-## [Common Issues](https://github.com/jaydenjcpy/EeveeSpotifyReincarnated/blob/Master/common_issues.md)
-Please check out the hyperlink above before opening an issue
+## AirPlay labels
 
-## Lyrics Support
+Allow **Local Network** access for Lyssna when prompted. The app first reads the selected output's metadata, then resolves that receiver's advertised AirPlay service when its model is missing. Model discovery is asynchronous; the label updates on a subsequent native Connect publication.
 
-EeveeSpotify replaces Spotify monthly limited lyrics with one of the following four lyrics providers:
+The selected receiver must advertise usable metadata and be reachable. Device groups, unknown hardware, and denied Local Network access can leave only the friendly name visible. Bluetooth and wired headphones keep the phone's Spotify Connect identity.
 
-- Genius: Offers the best quality lyrics, provides the most songs, and updates lyrics the fastest. Does not and will never be time-synced.
+## Source layout
 
-- LRCLIB: The most open service, offering time-synced lyrics. However, it lacks lyrics for many songs.
+- `Sources/Lyssna`: Swift hooks, settings, lyrics, and playback features.
+- `Sources/LyssnaC`: Objective-C and C bridges to native controls.
+- `NativeDownloads`: the offline-download implementation, presented as Lyssna Offline.
+- `layout/Library/Application Support/Lyssna.bundle`: translations, configuration, and app resources.
+- `Assets/Brand`: shared microphone mark and vector source.
+- `Assets/AppIcon/sources/Lyssna.png`: opaque primary iOS icon.
+- `Tools/brand-app.py`: presentation changes that preserve app identity.
+- `Scripts/pull-lyrics-log.py`: retrieve diagnostics from a paired USB device.
 
-- Musixmatch: The service Spotify uses. Provides time-synced lyrics for many songs, but you'll need a user token to use this source. To obtain the token, download Musixmatch from the App Store, sign up, then go to Settings > Get help > Copy debug info, and paste it into EeveeSpotify alert. You can also extract the token using MITM.
+Existing preferences are copied into the Lyssna namespace on upgrade, including custom output offsets and saved settings. Legacy names remain only where needed for compatibility, attribution, or genuine external repository links. Runtime caches and new diagnostic files use Lyssna names.
 
-- PetitLyrics: Offers plenty of time-synced Japanese and some international lyrics.
+## Upstream and attribution
 
-If the tweak is unable to find a song or process the lyrics, you'll see a "Couldn't load the lyrics for this song" message. The lyrics might be wrong for some songs when using Genius due to how the tweak searches songs. While I've made it work in most cases, kindly refrain from opening issues about it.
+This project builds on [EeveeSpotifyReincarnated](https://github.com/SideloadLabs/EeveeSpotifyReincarnated), its earlier EeveeSpotify lineage, and the work of its contributors. Upstream credits are retained in `contributors.json` and the contributor UI. The offline implementation's original provenance is recorded in `NativeDownloads/provenance-pixie-v1.4.json`.
 
-## How It Works
-
-EeveeSpotify intercepts Spotify requests to load user data, deserializes it, and modifies the parameters in real-time. This method works incredibly stable across supported Spotify versions.
-
-The tweak also sets `trackRowsEnabled` to `true`, allowing you to see track rows and liked tracks on artist pages just like with Premium.
-
-## Installation
-
-For sideloaded IPAs, we recommend using [**SideStore**](https://sidestore.io), or certificate-based signing tools like [**FlareStore**](https://flarestore.app), [**RyukSign**](https://github.com/faroukbmiled/RyukSign) for best compatibility.
-
-To open Spotify links in sideloaded app, use [OpenSpotifySafariExtension](https://github.com/BillyCurtis/OpenSpotifySafariExtension). Remember to activate it and allow access in Settings > Safari > Extensions.
-
-## Contributing
-
-Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening issues or pull requests.
-
-Contributions are welcome — bug fixes, new features, and translations alike. If you'd like to translate the tweak into your language or improve an existing localization, see [TRANSLATING.md](TRANSLATING.md) for the workflow, the rules, and the `Tools/l10n_lint.py` checker that validates your translation before you open a PR.
-
-## Credits
-Thanks for all of the community's support, also, thanks to all the devs who worked to revive this project. Go check the devs out:
-
-[jaydenjcpy](https://github.com/jaydenjcpy)
-
-[Ryuk](https://github.com/faroukbmiled) 
-
-[Mod4](https://github.com/M0d-4)
-
-[estrogencat](https://github.com/estrogencat)
-
-[Skye](https://github.com/Meeep1) 
-
-[whoeevee](https://github.com/whoeevee) 
-
-[Spikerko](https://github.com/Spikerko)
-
-[Glonq](https://github.com/Glongq)
-
-- This project is a fork of [Meeep1/EeveeSpotifyRevivedPublic](https://github.com/Meeep1/EeveeSpotifyRevivedPublic).
-
-## Vibecoded Pull Requests & Commit Comments
-
-Please note that there are some vibecoded pull requests and vibecoded commit comments in this repository.
-
-## Disclaimer
-
-This project is an **independent modification (tweak)** for the Spotify app. We are **not affiliated, associated, authorized, endorsed by, or in any way officially connected with Spotify**, or any of its subsidiaries or affiliates. 
-
-This tweak is created solely for **personal and educational purposes**. Use it at your own risk.
-
-**We do not take any responsibility for any issues, damages, or consequences** resulting from the use or misuse of this tweak. If something breaks, it's not our problem.
-
-## Star History
-
-<a href="https://www.star-history.com/?repos=SideloadLabs%2FEeveeSpotifyReincarnated&type=date&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=SideloadLabs/EeveeSpotifyReincarnated&type=date&theme=dark&legend=top-left&sealed_token=C1hKWTv3UNdLAgsZjjCL7Rthp6YSGB4Mm9kIalnH1lgZXZnYVL09WbBt57E-FFzQXg8gZyFOW356S5XMTWmvQdIuEihF66WxqGuJTejmAdJx5XJHxC2l3A" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=SideloadLabs/EeveeSpotifyReincarnated&type=date&legend=top-left&sealed_token=C1hKWTv3UNdLAgsZjjCL7Rthp6YSGB4Mm9kIalnH1lgZXZnYVL09WbBt57E-FFzQXg8gZyFOW356S5XMTWmvQdIuEihF66WxqGuJTejmAdJx5XJHxC2l3A" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=SideloadLabs/EeveeSpotifyReincarnated&type=date&legend=top-left&sealed_token=C1hKWTv3UNdLAgsZjjCL7Rthp6YSGB4Mm9kIalnH1lgZXZnYVL09WbBt57E-FFzQXg8gZyFOW356S5XMTWmvQdIuEihF66WxqGuJTejmAdJx5XJHxC2l3A" />
- </picture>
-</a>
+Lyssna's microphone mark is shared with the sibling desktop app; its vector derives from Lucide's MicVocal icon. See [branding attribution](Assets/Brand/README.md). Third-party source notices and licenses remain with their dependencies. This customization is not affiliated with Spotify or Apple. See [LICENSE](LICENSE) for the repository license.

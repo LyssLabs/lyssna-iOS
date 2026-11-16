@@ -287,7 +287,7 @@ dispatch_block_t SAPCallReadOnlyServiceCancellable(NSString *serviceName, NSStri
     }
     call.serviceName = serviceName; call.method = method; call.payload = payload;
     SAPTraceID parent=SAPTraceCurrentOperation();
-    if(!parent&&SAPTraceIsActive())parent=SAPTraceBegin(@"read_only_service",@"pixie",@{@"service":serviceName,@"method":method});
+    if(!parent&&SAPTraceIsActive())parent=SAPTraceBegin(@"read_only_service",@"lyssnaOffline",@{@"service":serviceName,@"method":method});
     call.traceOperation=parent;
     dispatch_async(SAPTransportWorker(), ^{
         if(call.isCancelled) { finishReadOnlyCall(call,nil,nil); return; }
@@ -314,7 +314,7 @@ void SAPInvokeServiceOnce(NSString *serviceName,NSString *method,NSData *payload
     NSString *requestedEvent=offline?@"offline_explicit_command_requested":playlist?@"playlist_explicit_command_requested":storage?@"storage_explicit_command_requested":@"collection_explicit_command_requested";
     NSString *replyEvent=offline?@"offline_explicit_command_reply":playlist?@"playlist_explicit_command_reply":storage?@"storage_explicit_command_reply":@"collection_explicit_command_reply";
     SAPTraceID parent=SAPTraceCurrentOperation();
-    if(!parent&&SAPTraceIsActive())parent=SAPTraceBegin(offline?@"explicit_offline_command":playlist?@"explicit_playlist_command":storage?@"explicit_storage_command":@"explicit_collection_command",@"pixie",@{@"service":serviceName,@"method":method});
+    if(!parent&&SAPTraceIsActive())parent=SAPTraceBegin(offline?@"explicit_offline_command":playlist?@"explicit_playlist_command":storage?@"explicit_storage_command":@"explicit_collection_command",@"lyssnaOffline",@{@"service":serviceName,@"method":method});
     dispatch_async(SAPTransportWorker(),^{
         id endpoint=SAPProvenTransport();
         if(!endpoint){if(completion)dispatch_async(dispatch_get_main_queue(),^{completion(nil,@"No verified Spotify transport. Refresh the device state first.",SAPCommandNotInvoked);});return;}

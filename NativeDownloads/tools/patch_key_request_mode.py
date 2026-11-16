@@ -11,7 +11,7 @@ from pathlib import Path
 
 from patch_native_restrictions import UUID, branch, layout
 
-from pixie_target import PROFILE, native_address, native_bytes
+from lyssnaOffline_target import PROFILE, native_address, native_bytes
 
 PREFERRED = int(PROFILE["preferred_address"], 16)
 CALL_SITE = native_address("call_site")
@@ -29,7 +29,7 @@ ASSEMBLY = Path(__file__).with_name('key_mode_trampoline.S')
 
 
 def _compiled_template():
-    with tempfile.TemporaryDirectory(prefix='pixie-key-thunk-') as directory:
+    with tempfile.TemporaryDirectory(prefix='lyssnaOffline-key-thunk-') as directory:
         obj = Path(directory) / 'thunk.o'
         sdk = subprocess.check_output(['xcrun', '--sdk', 'iphoneos', '--show-sdk-path'], text=True).strip()
         subprocess.run(['xcrun', 'clang', '-c', '-arch', 'arm64', '-target', 'arm64-apple-ios15.0',

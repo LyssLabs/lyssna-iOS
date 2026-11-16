@@ -19,7 +19,7 @@ static inline NSDictionary *SAPAssessNativeSetup(NSDictionary *state, BOOL valid
     } else {
         if (!guard) {
             [blockers addObject:@"restriction_patch_unverified"];
-            [messages addObject:@"The download restriction patch is missing or does not match this executable. Install a verified Pixie build."];
+            [messages addObject:@"The download restriction patch is missing or does not match this executable. Install a verified LyssnaOffline build."];
         }
         if (!key) {
             if (!selectorBinding) {

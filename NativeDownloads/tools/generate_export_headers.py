@@ -1,6 +1,6 @@
 """Generate or check the 9.1.92 export headers from targets/spotify-9.1.92.json."""
 import argparse
-from pixie_target import ROOT
+from lyssnaOffline_target import ROOT
 from export_headers import headers
 
 

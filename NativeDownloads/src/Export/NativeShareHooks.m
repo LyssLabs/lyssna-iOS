@@ -14,7 +14,7 @@
 #import <LinkPresentation/LinkPresentation.h>
 #import <objc/runtime.h>
 #import <objc/message.h>
-static NSString *const SAPNativeSharePreference=@"PixieShareAsFile";
+static NSString *const SAPNativeSharePreference=@"LyssnaOfflineShareAsFile";
 static char SAPNativeShareStateKey,SAPNativeShareLayoutTriedKey,SAPNativeShareDelegateKey;
 @class SAPNativeShareState;
 static SAPNativeShareState *SAPNativeSharePending;
@@ -119,11 +119,11 @@ static BOOL SAPShareCellMatches(UIView *cell,SAPNativeShareIntent action){
 }
 - (void)failed:(NSString *)error generation:(NSUInteger)generation {
     if(self.generation!=generation)return;
-    [self.filePromise resolveFile:nil error:[NSError errorWithDomain:@"PixieShare" code:2 userInfo:@{NSLocalizedDescriptionKey:error?:@"Audio preparation failed."}]];
+    [self.filePromise resolveFile:nil error:[NSError errorWithDomain:@"LyssnaOfflineShare" code:2 userInfo:@{NSLocalizedDescriptionKey:error?:@"Audio preparation failed."}]];
     self.busy=NO;self.exportInFlight=NO;self.ready=NO;[self show:error?:@"Audio preparation failed."];
     [self clearIntent];self.preparedFiles=nil;self.preparedItems=nil;self.preparedData=nil;
     SAPShareCompletionRelay *relay=self.nativeCompletion;self.nativeCompletion=nil;
-    [relay finish:nil completed:NO items:nil error:[NSError errorWithDomain:@"PixieShare" code:2 userInfo:@{NSLocalizedDescriptionKey:error?:@"Audio preparation failed."}]];
+    [relay finish:nil completed:NO items:nil error:[NSError errorWithDomain:@"LyssnaOfflineShare" code:2 userInfo:@{NSLocalizedDescriptionKey:error?:@"Audio preparation failed."}]];
 }
 - (void)prepare {
     if(!SAPShareShouldPrepare(self.fileModeOn,self.intent,self.busy,self.ready)||![self validate])return;

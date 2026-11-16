@@ -64,7 +64,7 @@ static void SAPAfterDialogDismissal(UIAlertController *dialog,dispatch_block_t c
     self.selectedReleaseURIs=[NSMutableSet set];self.artworkCells=[NSHashTable weakObjectsHashTable];
     self.downloadControl=[[UIBarButtonItem alloc]initWithTitle:@"Download selected" style:UIBarButtonItemStylePlain target:self action:@selector(downloadSelected)];
     __weak typeof(self) weakStopPage=self;
-    self.stopControl=[[UIBarButtonItem alloc]initWithPrimaryAction:[UIAction actionWithTitle:@"Stop" image:nil identifier:@"pixie.artist.downloads.stop" handler:^(UIAction *action){
+    self.stopControl=[[UIBarButtonItem alloc]initWithPrimaryAction:[UIAction actionWithTitle:@"Stop" image:nil identifier:@"lyssnaOffline.artist.downloads.stop" handler:^(UIAction *action){
         typeof(self) page=weakStopPage;if(!page)return;
         BOOL senderMatches=action.sender==page.stopControl;
         BOOL visible=page.itemsVisible && page.viewIfLoaded.window!=nil && !page.navigationController.toolbarHidden && [page.toolbarItems containsObject:page.stopControl];

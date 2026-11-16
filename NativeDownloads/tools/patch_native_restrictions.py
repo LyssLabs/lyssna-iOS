@@ -6,7 +6,7 @@ No runtime code writes, extra imports, polling, key material or episode changes.
 """
 import struct
 
-from pixie_target import PROFILE, native_address, native_bytes
+from lyssnaOffline_target import PROFILE, native_address, native_bytes
 
 PREFERRED = int(PROFILE["preferred_address"], 16)
 SETTER = native_address("setter")

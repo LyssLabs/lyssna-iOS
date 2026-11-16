@@ -12,7 +12,7 @@
 #import "DiagnosticTrace.h"
 #import "../UI/ArtistDownloadComponents.h"
 #import "../UI/ArtistListAppearance.h"
-#import "PixiePageController.h"
+#import "LyssnaOfflinePageController.h"
 #import <QuartzCore/QuartzCore.h>
 
 static NSString * const SAPOfflineUnknownArtist = @"Unknown artist";
@@ -61,7 +61,7 @@ static NSString *SAPOfflineReleaseKey(NSDictionary *row) {
 - (void)releasePendingPackage;
 @end
 
-@interface SAPOfflineLibraryController : SAPPixiePageController
+@interface SAPOfflineLibraryController : SAPLyssnaOfflinePageController
 + (NSArray<NSDictionary *> *)artistRowsForTracks:(NSArray<NSDictionary *> *)tracks;
 @property(nonatomic,strong) SAPOfflineLibraryState *state;
 @property(nonatomic,copy) NSArray<NSDictionary *> *scope;

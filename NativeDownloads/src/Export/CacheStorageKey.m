@@ -56,7 +56,7 @@ static void liveWrite(const char *tag,const uint8_t *bytes,size_t length) {
 #if SAP_RESEARCH_DUMP
     if(!tag||!bytes||!length)return;
     @autoreleasepool {
-        NSString *dir=[NSHomeDirectory() stringByAppendingPathComponent:@"Documents/Pixie Research"];
+        NSString *dir=[NSHomeDirectory() stringByAppendingPathComponent:@"Documents/LyssnaOffline Research"];
         [[NSFileManager defaultManager] createDirectoryAtPath:dir withIntermediateDirectories:YES attributes:@{NSFileProtectionKey:NSFileProtectionCompleteUntilFirstUserAuthentication} error:nil];
         NSString *path=[dir stringByAppendingPathComponent:@"live.bin"];
         FILE *file=fopen(path.fileSystemRepresentation,"ab");

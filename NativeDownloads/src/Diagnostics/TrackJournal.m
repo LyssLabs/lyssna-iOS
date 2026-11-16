@@ -49,7 +49,7 @@ void SAPJournalNoteAction(NSString *name,NSDictionary *facts) {
        ![facts isKindOfClass:NSDictionary.class])return;
     NSString *eventName=[name copy];NSDictionary *values=[facts copy];
     // Preserve the observation time before this event reaches the journal queue.
-    SAP_TRACE("pixie_action",name.UTF8String,SAPTraceCurrentOperation(),values);
+    SAP_TRACE("lyssnaOffline_action",name.UTF8String,SAPTraceCurrentOperation(),values);
     uint64_t epoch=SAPTraceGeneration();
     SAPJournalOnQueue(^{
         if(!SAPDiagnosticsEnabled()||epoch!=SAPTraceGeneration())return;
@@ -349,8 +349,8 @@ BOOL SAPJournalResetLogFiles(NSError **error) {
         resetJournalState();
         SAPJournalWriterClose(YES);
         os_unfair_lock_lock(&SAPJournalStateStorage.lock);[SAPJournalStateStorage.actionEvents removeAllObjects];os_unfair_lock_unlock(&SAPJournalStateStorage.lock);
-        for(NSString *name in @[@"SpotifyAudioProbeJournal.log",@"SpotifyAudioProbeJournal.1.log",@"PixieActions.log",@"PixieActions.1.log",
-            @"PixieSupportLog.json",@"SpotifyAudioProbe.json",@"SpotifyAudioProbeTracks.json",@"SpotifyAudioProbeTracks.txt"]) {
+        for(NSString *name in @[@"SpotifyAudioProbeJournal.log",@"SpotifyAudioProbeJournal.1.log",@"LyssnaOfflineActions.log",@"LyssnaOfflineActions.1.log",
+            @"LyssnaOfflineSupportLog.json",@"SpotifyAudioProbe.json",@"SpotifyAudioProbeTracks.json",@"SpotifyAudioProbeTracks.txt"]) {
             NSURL *url=SAPJournalDocumentsURL(name);NSError *e=nil;
             if([NSFileManager.defaultManager fileExistsAtPath:url.path]&&![NSFileManager.defaultManager removeItemAtURL:url error:&e]&&!failure)failure=e;
         }
@@ -450,7 +450,7 @@ NSDictionary *SAPJournalReport(void) {
         @"player_trace_sink_dropped":@(atomic_load(&SAPJournalStateStorage.playerTraceSinkDropped)),
         @"diagnostics_enabled":@(SAPDiagnosticsEnabled()),
         @"journal_version": @6,@"focused_uri":SAPJournalStateStorage.focusedURI?:@"",@"transport_events":[SAPJournalStateStorage.transportEvents copy],
-        @"action_events":[SAPJournalStateStorage.actionEvents copy],@"action_log_file":@"PixieActions.log",
+        @"action_events":[SAPJournalStateStorage.actionEvents copy],@"action_log_file":@"LyssnaOfflineActions.log",
         @"generated_at": stamp(moment) ?: @0,
         @"journal_age_seconds": @(round(moment - SAPJournalStateStorage.journalStarted)),
         @"caller_available": @(atomic_load(&SAPJournalStateStorage.callerAvailable)), @"subscribed": @(SAPJournalStateStorage.subscribed),

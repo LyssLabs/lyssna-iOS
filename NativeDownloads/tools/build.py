@@ -1,4 +1,4 @@
-"""Build the current Eevee/Pixie IPA in one fresh output directory."""
+"""Build the current Lyssna/LyssnaOffline IPA in one fresh output directory."""
 import argparse
 from datetime import datetime
 import os
@@ -8,7 +8,7 @@ import subprocess
 import sys
 import tempfile
 
-from pixie_target import PROFILE, ROOT, validate_sources
+from lyssnaOffline_target import PROFILE, ROOT, validate_sources
 
 
 def main():
@@ -33,21 +33,21 @@ def main():
     env = dict(os.environ, THEOS=str(args.theos.resolve()),
                THEOS_PACKAGE_SCHEME="rootless")
     # Theos requires a project path without spaces. Sources stay in this project.
-    with tempfile.TemporaryDirectory(prefix="pixie-project-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="lyssnaOffline-project-") as temporary:
         alias = Path(temporary) / "project"
         alias.symlink_to(ROOT.parent, target_is_directory=True)
         env["THEOS_PROJECT_DIR"] = str(alias)
-        with (output / "eevee-build.log").open("w") as log:
+        with (output / "lyssna-build.log").open("w") as log:
             subprocess.run([make, f"-j{args.jobs}", "all", "FINALPACKAGE=1",
                             f"THEOS_PROJECT_DIR={alias}",
                             "REPO_SLUG=SideloadLabs/EeveeSpotifyReincarnated", "BRANCH_NAME=Master"],
                            cwd=alias, env=env, stdout=log, stderr=subprocess.STDOUT, check=True)
-    eevee = ROOT.parent / ".theos/obj/EeveeSpotify.dylib"
-    subprocess.run(["codesign", "--force", "--sign", "-", "--timestamp=none", str(eevee)], check=True)
-    archive = output / f'Spotify-{PROFILE["spotify_version"]}-EeveeSpotify-Pixie-v{PROFILE["pixie_version"]}.ipa'
+    lyssna = ROOT.parent / ".theos/obj/Lyssna.dylib"
+    subprocess.run(["codesign", "--force", "--sign", "-", "--timestamp=none", str(lyssna)], check=True)
+    archive = output / f'Spotify-{PROFILE["spotify_version"]}-Lyssna-LyssnaOffline-v{PROFILE["lyssnaOffline_version"]}.ipa'
     with (output / "ipa-build.log").open("w") as log:
-        subprocess.run([sys.executable, str(ROOT / "tools/build_eevee_9192.py"), str(source),
-                        "--eevee-dylib", str(eevee), "--output", str(archive)],
+        subprocess.run([sys.executable, str(ROOT / "tools/build_lyssna_9192.py"), str(source),
+                        "--lyssna-dylib", str(lyssna), "--output", str(archive)],
                        cwd=ROOT.parent, env=env, stdout=log, stderr=subprocess.STDOUT, check=True)
     print(archive)
 

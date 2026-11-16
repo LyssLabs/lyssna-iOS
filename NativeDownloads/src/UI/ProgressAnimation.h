@@ -14,10 +14,10 @@ static inline void SAPSetProgressRing(CAShapeLayer *ring,double progress,BOOL an
     ring.strokeEnd=target;
     [CATransaction commit];
     if(!animated || target<=previous) {
-        [ring removeAnimationForKey:@"pixie.progress"];return;
+        [ring removeAnimationForKey:@"lyssnaOffline.progress"];return;
     }
     CABasicAnimation *animation=[CABasicAnimation animationWithKeyPath:@"strokeEnd"];
     animation.fromValue=@(visible);animation.toValue=@(target);animation.duration=.3;
     animation.timingFunction=[CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
-    [ring addAnimation:animation forKey:@"pixie.progress"];
+    [ring addAnimation:animation forKey:@"lyssnaOffline.progress"];
 }

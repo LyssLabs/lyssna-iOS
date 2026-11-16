@@ -82,7 +82,7 @@ static NSMapTable<NSProgress *,SAPOfflineLibraryExportJob *> *activeJobs;
     [self schedule];
 }
 - (void)convert:(NSURL *)input track:(NSDictionary *)track {
-    NSURL *folder=[NSURL fileURLWithPath:[NSTemporaryDirectory()stringByAppendingPathComponent:[@"PixieConvert-"stringByAppendingString:NSUUID.UUID.UUIDString]]isDirectory:YES];NSError *error=nil;
+    NSURL *folder=[NSURL fileURLWithPath:[NSTemporaryDirectory()stringByAppendingPathComponent:[@"LyssnaOfflineConvert-"stringByAppendingString:NSUUID.UUID.UUIDString]]isDirectory:YES];NSError *error=nil;
     if(![NSFileManager.defaultManager createDirectoryAtURL:folder withIntermediateDirectories:YES attributes:@{NSFileProtectionKey:NSFileProtectionCompleteUntilFirstUserAuthentication} error:&error]){[self completeTrack:track file:nil error:error.localizedDescription];return;}
     NSURL *output=[folder URLByAppendingPathComponent:[input.lastPathComponent.stringByDeletingPathExtension stringByAppendingPathExtension:@"m4a"]];
     SAPRetainTemporaryAudioFiles(@[output],folder);

@@ -1,4 +1,4 @@
-"""Run the current Pixie host fixtures without Spotify, credentials or UI launches.
+"""Run the current LyssnaOffline host fixtures without Spotify, credentials or UI launches.
 
 Each target lists only its production dependencies: test doubles must never be
 linked with a second implementation. Results and full child output are retained
@@ -37,7 +37,7 @@ class Fixture:
 # copying it into the tests or relying on directory-wide source globs.
 FIXTURES = (
     Fixture("native_cache_namespace", "export", ("native_cache_namespace.m",)),
-    Fixture("page_contract", "library", ("PixiePageController.m", "page_contract.m"), scenarios=tuple((s,) for s in ("swift", "legacy", "both", "late", "unsupported", "lookalike"))),
+    Fixture("page_contract", "library", ("LyssnaOfflinePageController.m", "page_contract.m"), scenarios=tuple((s,) for s in ("swift", "legacy", "both", "late", "unsupported", "lookalike"))),
     Fixture("progress_animation", "library", ("progress_animation.m",), frameworks=("Foundation", "QuartzCore")),
     Fixture("ogg_inspection", "export", ("OggInspection.c","OggExport.c","ogg_inspection.m"), scenarios=((str(ROOT / "tests/fixtures/export-tone-10s.ogg"),),)),
     Fixture("ogg_validation_trace", "diagnostics", ("OggValidationTrace.m","OggExport.c","ogg_validation_trace.m")),
@@ -92,7 +92,7 @@ FIXTURES = (
     Fixture("playlist_streaming", "playlists", ("WireProto.m", "playlist_streaming.m"), groups=("playlists",)),
     Fixture("download_compatibility", "devices", ("OfflineCompatibilityChecks.m", "WireProto.m", "download_compatibility.m"), diagnostics=True),
     Fixture("offline_devices", "devices", ("OfflineDeviceManager.m", "WireProto.m", "offline_devices.m"), diagnostics=True),
-    Fixture("offline_devices_eevee_auth", "devices", ("OfflineDeviceManager.m", "WireProto.m", "offline_devices.m"), diagnostics=True, defines=("SAP_REAL_EEVEE_AUTH",)),
+    Fixture("offline_devices_lyssna_auth", "devices", ("OfflineDeviceManager.m", "WireProto.m", "offline_devices.m"), diagnostics=True, defines=("SAP_REAL_LYSSNA_AUTH",)),
 )
 GROUP_FALLBACKS = {
     "manual_download": ("ManualTrackDownload.m",),
@@ -112,7 +112,7 @@ def source(name: str) -> Path:
 
 def group(name: str) -> list[Path]:
     try:
-        from pixie_target import source_group
+        from lyssnaOffline_target import source_group
     except ModuleNotFoundError:
         return [source(n) for n in GROUP_FALLBACKS[name]]
     return list(source_group(name))
@@ -148,7 +148,7 @@ def run_fixture(test: Fixture, build: Path, sanitize: bool):
     folder.mkdir(parents=True)
     home = folder / "temporary"
     home.mkdir()
-    env = dict(os.environ, TMPDIR=str(home) + "/", PIXIE_TEST_BUILD_DIR=str(folder))
+    env = dict(os.environ, TMPDIR=str(home) + "/", LYSSNA_OFFLINE_TEST_BUILD_DIR=str(folder))
     # Diagnostic fixtures must not reuse a user's preference setting.
     binary = folder / test.name
     paths = fixture_sources(test)
@@ -161,7 +161,7 @@ def run_fixture(test: Fixture, build: Path, sanitize: bool):
         (folder / "UIKit").mkdir()
         (folder / "UIKit/UIKit.h").write_text('#import <Foundation/Foundation.h>\ntypedef NSInteger UITableViewStyle;\nenum { UITableViewStyleInsetGrouped=2 };\n@interface UITableViewController : NSObject\n- (instancetype)initWithStyle:(UITableViewStyle)style;\n@end\n')
         declarations = []
-        for filename, name in (("PixieManagerSettings.m", "SAPSettingsTable"), ("OfflineLibraryUI.m", "SAPOfflineLibraryController")):
+        for filename, name in (("LyssnaOfflineManagerSettings.m", "SAPSettingsTable"), ("OfflineLibraryUI.m", "SAPOfflineLibraryController")):
             match = re.search(r"@interface " + name + r"\s*:\s*(\w+)", source(filename).read_text())
             if not match:
                 raise RuntimeError(f"Missing production declaration for {name}")
@@ -202,9 +202,9 @@ def run_fixture(test: Fixture, build: Path, sanitize: bool):
         command.extend(("-framework", framework))
     command.extend(("-o", binary))
     with (folder / "output.log").open("w") as log:
-        if "SAP_REAL_EEVEE_AUTH" in test.defines:
-            bridge = folder / "libEeveeAuthenticationFixture.dylib"
-            execute(("xcrun", "swiftc", "-parse-as-library", "-emit-library", "-module-name", "PixieAuthenticationFixture", PROJECT / "Sources/EeveeSpotify/PixieAuthentication.swift", source("eevee_auth_headers.swift"), "-o", bridge), log, env)
+        if "SAP_REAL_LYSSNA_AUTH" in test.defines:
+            bridge = folder / "libLyssnaAuthenticationFixture.dylib"
+            execute(("xcrun", "swiftc", "-parse-as-library", "-emit-library", "-module-name", "LyssnaOfflineAuthenticationFixture", PROJECT / "Sources/Lyssna/LyssnaOfflineAuthentication.swift", source("lyssna_auth_headers.swift"), "-o", bridge), log, env)
             command.append(bridge)
         execute(command, log, env)
         for args in test.scenarios:
@@ -215,7 +215,7 @@ def run_script(name: str, build: Path):
     folder = build / name
     folder.mkdir(parents=True)
     paths = {"export_artwork_cache": ROOT / "tools/test_export_artwork_cache.py", "track_export": ROOT / "tools/test_audio_export.py", "m4a_codec": ROOT / "tools/test_m4a_export.py", "offline_library_package": ROOT / "tests/test_offline_library_package.py", "export_patch": ROOT / "tests/export_patch.py", "native_restrictions": ROOT / "tools/test_native_restrictions.py", "native_trace_abi": ROOT / "tests/native_trace_patch.py", "signing_metadata": ROOT / "tests/signing_metadata.py"}
-    env = dict(os.environ, PIXIE_TEST_BUILD_DIR=str(folder), PYTHONDONTWRITEBYTECODE="1")
+    env = dict(os.environ, LYSSNA_OFFLINE_TEST_BUILD_DIR=str(folder), PYTHONDONTWRITEBYTECODE="1")
     with (folder / "output.log").open("w") as log:
         execute((sys.executable, paths[name]), log, env)
 
@@ -265,8 +265,8 @@ def main():
         results.append(result)
         print(f"{result['status']}: {suite}/{name}" + (f" — {result['reason']}" if "reason" in result else ""), flush=True)
     counts = {status: sum(r["status"] == status for r in results) for status in ("PASS", "SKIP", "FAIL")}
-    from pixie_target import PROFILE
-    report = {"host": platform.platform(), "production_target": f"Eevee {PROFILE['eevee_version']} / Spotify {PROFILE['spotify_version']} / Pixie {PROFILE['pixie_version']}", "sanitizers": not args.no_sanitize, "device_runtime_tested": False, "counts": counts, "results": results}
+    from lyssnaOffline_target import PROFILE
+    report = {"host": platform.platform(), "production_target": f"Lyssna {PROFILE['lyssna_version']} / Spotify {PROFILE['spotify_version']} / LyssnaOffline {PROFILE['lyssnaOffline_version']}", "sanitizers": not args.no_sanitize, "device_runtime_tested": False, "counts": counts, "results": results}
     (build / "results.json").write_text(json.dumps(report, indent=2) + "\n")
     print(f"Results: {counts}; {build / 'results.json'}", flush=True)
     return 1 if counts["FAIL"] or not counts["PASS"] else 0

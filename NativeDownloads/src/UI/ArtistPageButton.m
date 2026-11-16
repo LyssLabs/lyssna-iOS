@@ -1,4 +1,4 @@
-// Artist-page download button for the stock Eevee build (moved out of the Eevee dylib).
+// Artist-page download button for the stock Lyssna build (moved out of the Lyssna dylib).
 // Native artist downloads use a non-arranged control in Spotify's existing action row.
 // Spotify owns the row and its arranged views; none of those views are moved or hidden here.
 #import <objc/runtime.h>
@@ -91,7 +91,7 @@ static NSString *modelArtistURI(UIViewController *controller) {
     static SEL selector;
     static dispatch_once_t once;
     dispatch_once(&once, ^{
-        identity = NSClassFromString(@"EeveePixieArtistIdentity");
+        identity = NSClassFromString(@"LyssnaOfflineArtistIdentity");
         selector = NSSelectorFromString(@"artistURI:");
     });
     if (![identity respondsToSelector:selector]) return nil;
@@ -350,7 +350,7 @@ static void updateDownloads(UIView *header) {
         ]];
         button.tintColor = color;
         button.translatesAutoresizingMaskIntoConstraints = NO;
-        button.accessibilityIdentifier = @"PixieNativeArtistDownload";
+        button.accessibilityIdentifier = @"LyssnaOfflineNativeArtistDownload";
         button.accessibilityLabel = @"Artist downloads";
         [button addTarget:context action:@selector(open) forControlEvents:UIControlEventTouchUpInside];
         context.button = button;
@@ -410,7 +410,7 @@ static void SAPArtistPageUpdateArtistDownloads(UIView *header, UIButton *externa
     updateDownloads(header);
 }
 
-// Hooks that used to live in Eevee: relayout the button when Spotify lays out the artist header
+// Hooks that used to live in Lyssna: relayout the button when Spotify lays out the artist header
 // or its action stack. Original implementations always run first.
 static void (*originalHeaderLayout)(id, SEL);
 static void (*originalStackLayout)(id, SEL);
@@ -427,12 +427,12 @@ static void stackLayout(UIStackView *self, SEL _cmd) {
     if (header && artistHeaderClass && [header isKindOfClass:artistHeaderClass]) SAPArtistPageUpdateArtistDownloads(header, nil);
 }
 
-// With Eevee's Liquid Glass playlist pages the artist header's own controls are hidden and Eevee's
+// With Lyssna's Liquid Glass playlist pages the artist header's own controls are hidden and Lyssna's
 // action row hosts the button (through SAPUpdateArtistDownloadsExternal); hooking the header too
 // would add a second, invisible button over Spotify's hidden controls.
-static BOOL eeveeGlassArtistActive(void) {
+static BOOL lyssnaGlassArtistActive(void) {
     if (@available(iOS 26.0, *)) {
-        NSData *data = [NSUserDefaults.standardUserDefaults dataForKey:@"eeveeLiquidGlassOptions"];
+        NSData *data = [NSUserDefaults.standardUserDefaults dataForKey:@"lyssnaLiquidGlassOptions"];
         id options = data ? [NSJSONSerialization JSONObjectWithData:data options:0 error:nil] : nil;
         if (![options isKindOfClass:NSDictionary.class]) return NO;
         id playlist = options[@"playlist"];
@@ -444,7 +444,7 @@ static BOOL eeveeGlassArtistActive(void) {
 void SAPInstallArtistPageButton(void) {
     if (!NSThread.isMainThread) { dispatch_async(dispatch_get_main_queue(), ^{ SAPInstallArtistPageButton(); }); return; }
     static BOOL installed;
-    if (installed || eeveeGlassArtistActive()) return;
+    if (installed || lyssnaGlassArtistActive()) return;
     Class header = NSClassFromString(@"_TtC35CreativeWorkPlatform_ImageHeaderKit15ImageHeaderView");
     SEL layout = @selector(layoutSubviews);
     Method headerMethod = header ? class_getInstanceMethod(header, layout) : NULL;

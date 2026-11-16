@@ -12,7 +12,7 @@ import struct
 import subprocess
 import zlib
 
-from pixie_target import ROOT,resolve_source,include_directories
+from lyssnaOffline_target import ROOT,resolve_source,include_directories
 
 
 def run(*args,**kwargs):return subprocess.run([str(a) for a in args],check=True,**kwargs)
@@ -20,7 +20,7 @@ def run(*args,**kwargs):return subprocess.run([str(a) for a in args],check=True,
 
 def main():
     # tools/test.py passes a fresh fixture folder; a direct run keeps its own.
-    out=Path(os.environ['PIXIE_TEST_BUILD_DIR']) if os.environ.get('PIXIE_TEST_BUILD_DIR') else ROOT.parent/'outputs'/datetime.now().strftime('export-fixture-%Y%m%d-%H%M%S-%f')
+    out=Path(os.environ['LYSSNA_OFFLINE_TEST_BUILD_DIR']) if os.environ.get('LYSSNA_OFFLINE_TEST_BUILD_DIR') else ROOT.parent/'outputs'/datetime.now().strftime('export-fixture-%Y%m%d-%H%M%S-%f')
     out.mkdir(parents=True,exist_ok=True)
     audio=out/'tone.ogg';prefixed=out/'prefixed.ogg';native=out/'synthetic-native-cache.file'
     audio.write_bytes((ROOT/'tests/fixtures/export-tone-10s.ogg').read_bytes())

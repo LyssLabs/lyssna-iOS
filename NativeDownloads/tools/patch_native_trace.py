@@ -14,7 +14,7 @@ from patch_native_restrictions import layout,branch,UUID
 from patch_key_request_mode import DLSYM_STUB,_verify_dlsym_binding
 
 SYMBOL=b'SAPTraceNativeBoundary\0'
-from pixie_target import PROFILE
+from lyssnaOffline_target import PROFILE
 POINTS = [(point["name"], int(point["address"], 16), int(point["cave"], 16),
            bytes.fromhex(point["original"]), point["kind"])
           for point in PROFILE["trace_points"]]
@@ -86,7 +86,7 @@ Ldone:
 Lname:
  .asciz "SAPTraceNativeBoundary"
 '''
-    with tempfile.TemporaryDirectory(prefix='pixie-native-trace-') as tmp:
+    with tempfile.TemporaryDirectory(prefix='lyssnaOffline-native-trace-') as tmp:
         source=Path(tmp)/'boundary.S';obj=Path(tmp)/'boundary.o';source.write_text(asm)
         sdk=subprocess.check_output(['xcrun','--sdk','iphoneos','--show-sdk-path'],text=True).strip()
         subprocess.run(['xcrun','clang','-c','-arch','arm64','-target','arm64-apple-ios15.0','-isysroot',sdk,str(source),'-o',str(obj)],check=True)

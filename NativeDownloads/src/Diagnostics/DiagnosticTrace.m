@@ -58,17 +58,17 @@ void SAPTraceWithOperation(SAPTraceID operation,dispatch_block_t block) {
     @try {block();}@finally {currentOperation=before;}
 }
 static NSURL *fileURL(unsigned index) {
-    return [directory URLByAppendingPathComponent:index?[NSString stringWithFormat:@"PixieTrace.%u.jsonl",index]:@"PixieTrace.jsonl"];
+    return [directory URLByAppendingPathComponent:index?[NSString stringWithFormat:@"LyssnaOfflineTrace.%u.jsonl",index]:@"LyssnaOfflineTrace.jsonl"];
 }
 static void initialize(void) {
     static dispatch_once_t once;
     dispatch_once(&once,^{
         mach_timebase_info(&timebase);startTicks=mach_continuous_time();runID=NSUUID.UUID.UUIDString;
-        writer=dispatch_queue_create("Pixie.diagnostic-trace",dispatch_queue_attr_make_with_autorelease_frequency(DISPATCH_QUEUE_SERIAL,DISPATCH_AUTORELEASE_FREQUENCY_WORK_ITEM));
+        writer=dispatch_queue_create("LyssnaOffline.diagnostic-trace",dispatch_queue_attr_make_with_autorelease_frequency(DISPATCH_QUEUE_SERIAL,DISPATCH_AUTORELEASE_FREQUENCY_WORK_ITEM));
         dispatch_queue_set_specific(writer,writerKey,writerKey,NULL);rpcCalls=[NSMutableSet set];
         if(!directory) {
 #ifdef SAP_TESTING
-            directory=[NSURL fileURLWithPath:[NSTemporaryDirectory()stringByAppendingPathComponent:[@"PixieTraceTests-"stringByAppendingString:NSUUID.UUID.UUIDString]]isDirectory:YES];
+            directory=[NSURL fileURLWithPath:[NSTemporaryDirectory()stringByAppendingPathComponent:[@"LyssnaOfflineTraceTests-"stringByAppendingString:NSUUID.UUID.UUIDString]]isDirectory:YES];
             [NSFileManager.defaultManager createDirectoryAtURL:directory withIntermediateDirectories:YES attributes:nil error:nil];
 #else
             directory=[NSFileManager.defaultManager URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask].firstObject;
@@ -161,7 +161,7 @@ void SAPTraceFlush(void) {
 }
 BOOL SAPTraceReset(NSError **error) {
     os_unfair_lock_lock(&traceControlLock);
-    if(resetting){os_unfair_lock_unlock(&traceControlLock);if(error)*error=[NSError errorWithDomain:@"PixieTrace" code:1 userInfo:@{NSLocalizedDescriptionKey:@"A log reset is already in progress."}];return NO;}
+    if(resetting){os_unfair_lock_unlock(&traceControlLock);if(error)*error=[NSError errorWithDomain:@"LyssnaOfflineTrace" code:1 userInfo:@{NSLocalizedDescriptionKey:@"A log reset is already in progress."}];return NO;}
     resetting=YES;atomic_store(&active,false);uint64_t closing=atomic_fetch_add(&generation,1);
     os_unfair_lock_unlock(&traceControlLock);
 #ifdef SAP_TESTING
@@ -172,7 +172,7 @@ BOOL SAPTraceReset(NSError **error) {
         if(writer){closeRPCsThroughGeneration(closing);closedThroughGeneration=MAX(closedThroughGeneration,closing);}
         if(stream){fclose(stream);stream=NULL;}fileBytes=0;
         NSURL *folder=directory?:[NSFileManager.defaultManager URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask].firstObject;
-        for(NSString *name in @[@"PixieTrace.jsonl",@"PixieTrace.1.jsonl",@"PixieTrace.2.jsonl"]) {
+        for(NSString *name in @[@"LyssnaOfflineTrace.jsonl",@"LyssnaOfflineTrace.1.jsonl",@"LyssnaOfflineTrace.2.jsonl"]) {
             NSURL *url=[folder URLByAppendingPathComponent:name];NSError *e=nil;
             if([NSFileManager.defaultManager fileExistsAtPath:url.path]&&![NSFileManager.defaultManager removeItemAtURL:url error:&e]&&!failure)failure=e;
         }
@@ -277,7 +277,7 @@ NSDictionary *SAPTraceReport(void) {
         @"suppressed_traffic_adapter_calls":@(atomic_load(&suppressedTraffic)),@"suppressed_identical_progress_callbacks":@(atomic_load(&suppressedRepeats)),
         @"evicted_bytes":@(atomic_load(&evictedBytes)),@"rpc_slots_in_use":@(atomic_load(&rpcPending)),
         @"rpc_observations_dropped_at_capacity":@(atomic_load(&rpcCapacityDrops)),@"hook_registrations_dropped_at_capacity":@(atomic_load(&hookCapacityDrops)),@"lifetime_classes_unobserved_at_capacity":@(atomic_load(&lifetimeCapacityDrops)),
-        @"scope":@"Pixie and calls crossing instrumented Spotify transports; not every internal Spotify call",
+        @"scope":@"LyssnaOffline and calls crossing instrumented Spotify transports; not every internal Spotify call",
         @"durability":@"fflush per record; abrupt process/power loss may omit the final events; no crash cause inferred"};
 }
 NSDictionary *SAPTraceExport(void) {

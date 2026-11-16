@@ -5,11 +5,11 @@
 #import <string.h>
 
 NSString *const SAPNativeDownloadQualityOfferDidChangeNotification=@"SAPNativeDownloadQualityOfferDidChangeNotification";
-static NSString *const decisionKey=@"pixie.nativeDownloadQualityHint.v1";
+static NSString *const decisionKey=@"lyssnaOffline.nativeDownloadQualityHint.v1";
 static NSString *const preferencesClassName=@"_TtC31Preferences_CorePreferencesImpl28SPTPreferencesImplementation";
 static NSString *const dispatcherClassName=@"SPTLinkDispatcherImplementation";
-// Pixie captures Spotify's own preferences object and link dispatcher itself, so the hint works on any host
-// (EeveeSpotify) and never depends on a host mod's helper functions. Weak: Spotify owns both.
+// LyssnaOffline captures Spotify's own preferences object and link dispatcher itself, so the hint works on any host
+// (Lyssna) and never depends on a host mod's helper functions. Weak: Spotify owns both.
 static __weak id capturedPreferences,capturedDispatcher;
 typedef NS_ENUM(NSUInteger,SAPQualityDecision){SAPQualityUnknown,SAPQualityOffer,SAPQualityQuiet,SAPQualitySuppressed};
 static NSLock *policyLock;

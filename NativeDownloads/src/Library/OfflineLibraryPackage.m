@@ -69,12 +69,12 @@ static int SAPPackageSource(NSURL *url,int *parentFD,NSString **leaf,struct stat
     if(![path hasPrefix:prefix])prefix=[logical stringByAppendingString:@"/"];
     if(![path hasPrefix:prefix]) {
         // The exporter can also reuse validated published files. Anchor at the
-        // authorized app home, so Documents and Pixie Exports still get NOFOLLOW.
+        // authorized app home, so Documents and LyssnaOffline Exports still get NOFOLLOW.
         NSString *home=NSHomeDirectory().stringByStandardizingPath;
         if([home hasPrefix:@"/var/"])home=[@"/private" stringByAppendingString:home];
         NSString *resolved=[[NSURL fileURLWithPath:home isDirectory:YES]URLByResolvingSymlinksInPath].path;
-        if([path hasPrefix:[resolved stringByAppendingString:@"/Documents/Pixie Exports/"]]){canonical=resolved;prefix=[resolved stringByAppendingString:@"/"];}
-        else if([path hasPrefix:[home stringByAppendingString:@"/Documents/Pixie Exports/"]]){canonical=resolved;prefix=[home stringByAppendingString:@"/"];}
+        if([path hasPrefix:[resolved stringByAppendingString:@"/Documents/LyssnaOffline Exports/"]]){canonical=resolved;prefix=[resolved stringByAppendingString:@"/"];}
+        else if([path hasPrefix:[home stringByAppendingString:@"/Documents/LyssnaOffline Exports/"]]){canonical=resolved;prefix=[home stringByAppendingString:@"/"];}
         else {errno=EACCES;return -1;}
     }
     if(canonical.length<2){errno=EINVAL;return -1;}
@@ -243,7 +243,7 @@ static NSURL *SAPBuildLibraryPackage(NSArray<NSDictionary *> *tracks,BOOL zip,NS
     }];
     if(SAPPackageCancelled(progress,error))return nil;
     NSURL *temp=[[NSURL fileURLWithPath:NSTemporaryDirectory() isDirectory:YES]URLByResolvingSymlinksInPath];
-    NSString *pattern=[temp.path stringByAppendingPathComponent:@"PixieLibrary-XXXXXX"];
+    NSString *pattern=[temp.path stringByAppendingPathComponent:@"LyssnaOfflineLibrary-XXXXXX"];
     char *template=strdup(pattern.fileSystemRepresentation);char *created=mkdtemp(template);
     if(!created){free(template);*error=SAPPackageError(@"Could not create a private library package directory.");return nil;}
     SAPLibraryPackageLease *lease=[SAPLibraryPackageLease new];lease.root=[NSURL fileURLWithFileSystemRepresentation:created isDirectory:YES relativeToURL:nil];free(template);

@@ -82,7 +82,7 @@ void SAPRefreshDownloadCompatibility(void (^completion)(NSDictionary *)) {
     waiting=[NSMutableArray array];if(completion)[waiting addObject:[completion copy]];
     NSString *identifier=NSUUID.UUID.UUIDString;
     traceOperation=SAPTraceCurrentOperation();
-    if(!traceOperation&&SAPTraceIsActive())traceOperation=SAPTraceBegin(@"quota_license_refresh",@"pixie",@{@"check_id":identifier,@"read_only":@YES});
+    if(!traceOperation&&SAPTraceIsActive())traceOperation=SAPTraceBegin(@"quota_license_refresh",@"lyssnaOffline",@{@"check_id":identifier,@"read_only":@YES});
     currentRead=[@{@"id":identifier,@"started_at":@(NSDate.date.timeIntervalSince1970),
         @"source":@"in_process_offline_api",@"server_response_observed":@NO,@"read_only":@YES,
         @"sources":[NSMutableDictionary dictionary]}mutableCopy];

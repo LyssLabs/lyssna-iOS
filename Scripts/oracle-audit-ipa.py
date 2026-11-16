@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 """
-Offline automated IPA auditor for EeveeSpotify's oracle ad-blocking & entitlement
+Offline automated IPA auditor for Lyssna's oracle ad-blocking & entitlement
 architecture.
 
 Given a decrypted Spotify .ipa (or Mach-O binary), this script runs in <3 seconds
 and verifies:
   1. Audit 1 (Broken Hooks): Every critical ad/premium/network hook target parsed
-     from Sources/EeveeSpotify/**/*.swift exists in Payload/Spotify.app/Spotify.
+     from Sources/Lyssna/**/*.swift exists in Payload/Spotify.app/Spotify.
   2. Audit 2 (Unhooked Ad Services): Every _TtC service class in the binary
      matching (Ads|AdSlot|InStream|Upsell|Leavebehind|Sponsored|RealTimeAd).*Service
-     is accounted for in Sources/EeveeSpotify/ (or explicitly exempted as a
+     is accounted for in Sources/Lyssna/ (or explicitly exempted as a
      non-ad-delivery / DI-required service).
   3. Audit 3 (Injected Dylib Verification): When the input is a .ipa containing
-     Payload/Spotify.app/Frameworks/EeveeSpotify.dylib (or --dylib-check is used),
+     Payload/Spotify.app/Frameworks/Lyssna.dylib (or --dylib-check is used),
      verifies that every critical hook target and [ORACLE] sink marker from
-     Sources/EeveeSpotify/ is compiled into that dylib.
+     Sources/Lyssna/ is compiled into that dylib.
 
 Exits with code 0 on pass, 1 on any audit failure.
 """
@@ -43,7 +43,7 @@ CPU_TYPE_X86_64 = 0x01000007
 # Core chokepoint files whose hook targets must exist in EVERY Spotify IPA.
 CORE_CHOKEPOINT_FILES = (
     "UpsellPopupBlocker.x.swift",
-    "EeveePremiumForce.x.swift",
+    "LyssnaPremiumForce.x.swift",
     "DataLoaderServiceHooks.x.swift",
     "HttpClientURLSessionHooks.x.swift",
     "RemoteFlagsHooks.x.swift",
@@ -55,9 +55,9 @@ CORE_CHOKEPOINT_FILES = (
 # Swift services/views may be added or removed across 9.1.x versions; Audit 2
 # ensures every ad/upsell service present in the audited IPA is covered by this
 # cumulative superset, and Audit 3 ensures the entire cumulative superset is
-# compiled into EeveeSpotify.dylib.
+# compiled into Lyssna.dylib.
 CUMULATIVE_BLOCKER_FILES = (
-    "EeveeAdBlockerExtended.x.swift",
+    "LyssnaAdBlockerExtended.x.swift",
     "UpsellServiceBlocker.x.swift",
     "ClientMessagingPlatformBlocker.x.swift",
 )
@@ -158,7 +158,7 @@ def load_binary_and_dylib(path):
                 (
                     n for n in names
                     if n.startswith("Payload/")
-                    and n.endswith("/Frameworks/EeveeSpotify.dylib")
+                    and n.endswith("/Frameworks/Lyssna.dylib")
                 ),
                 None,
             )
@@ -190,7 +190,7 @@ def extract_binary_symbols(data):
 
 
 def extract_printable_strings(data):
-    """Extract printable ASCII strings from a Mach-O image (e.g. EeveeSpotify.dylib)."""
+    """Extract printable ASCII strings from a Mach-O image (e.g. Lyssna.dylib)."""
     return [
         m.group(0).decode("ascii")
         for m in re.finditer(rb"[\x20-\x7e]{4,240}", data)
@@ -225,7 +225,7 @@ def split_ttc_class(mangled):
 
 
 def parse_tweak_hooks(sources_dir):
-    """Parse Sources/EeveeSpotify/**/*.swift for every hooked targetName,
+    """Parse Sources/Lyssna/**/*.swift for every hooked targetName,
     findTweakClass(...), NSClassFromString(...), and [ORACLE][...] sink markers."""
     target_pat = re.compile(
         r'targetName\s*(?::\s*String)?\s*=\s*"([A-Za-z_][A-Za-z0-9_.]*)"'
@@ -318,7 +318,7 @@ def is_service_class(mangled):
 
 def audit_injected_dylib(dylib_blob, critical_targets, oracle_markers):
     """Verify every critical hook target and [ORACLE] sink marker is compiled into
-    EeveeSpotify.dylib."""
+    Lyssna.dylib."""
     ident_strings, _ = extract_binary_symbols(dylib_blob)
     printable_lines = extract_printable_strings(dylib_blob)
 
@@ -347,15 +347,15 @@ def main():
     ap.add_argument("ipa_or_binary", help="Path to patched.ipa or decrypted Spotify binary")
     ap.add_argument(
         "--sources",
-        default="Sources/EeveeSpotify",
-        help="Path to EeveeSpotify Swift sources (default: Sources/EeveeSpotify)",
+        default="Sources/Lyssna",
+        help="Path to Lyssna Swift sources (default: Sources/Lyssna)",
     )
     ap.add_argument(
         "--dylib-check",
         dest="dylib_check",
         action="store_true",
         default=None,
-        help="Verify Payload/Spotify.app/Frameworks/EeveeSpotify.dylib inside the IPA (enabled automatically for .ipa files containing EeveeSpotify.dylib)",
+        help="Verify Payload/Spotify.app/Frameworks/Lyssna.dylib inside the IPA (enabled automatically for .ipa files containing Lyssna.dylib)",
     )
     ap.add_argument(
         "--skip-dylib-check",
@@ -463,7 +463,7 @@ def main():
         if dylib_missing_file:
             failed = True
             print(
-                "\n[FAIL] Audit 3 — Payload/Spotify.app/Frameworks/EeveeSpotify.dylib not found in input"
+                "\n[FAIL] Audit 3 — Payload/Spotify.app/Frameworks/Lyssna.dylib not found in input"
             )
         elif missing_dylib_hooks or missing_oracle_markers:
             failed = True

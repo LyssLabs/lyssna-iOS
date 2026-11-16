@@ -8,7 +8,7 @@ private func require(_ condition: @autoclosure () -> Bool, _ message: String) {
 
 private func glassTabBarSource() -> String {
     var directory = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-    let relative = "Sources/EeveeSpotify/LiquidGlass/GlassTabBar.x.swift"
+    let relative = "Sources/Lyssna/LiquidGlass/GlassTabBar.x.swift"
     while true {
         let candidate = directory.appendingPathComponent(relative)
         if FileManager.default.fileExists(atPath: candidate.path),
@@ -80,7 +80,7 @@ private struct Session {
 
 private func checkZeroTabsThenAddLater() {
     let source = glassTabBarSource()
-    let observer = body(in: source, after: ".eeveeTabBarOptionsChanged")
+    let observer = body(in: source, after: ".lyssnaTabBarOptionsChanged")
     let activate = body(in: source, after: "func activateGlassCustomTabs()")
     let hook = activate.range(of: "CustomTabsGroup().activate()")
     let head = hook.map { String(activate[..<$0.lowerBound]) } ?? ""

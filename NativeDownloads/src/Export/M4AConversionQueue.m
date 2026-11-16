@@ -25,7 +25,7 @@ NSProgress *SAPQueueM4AConversion(NSURL *input, NSURL *output, NSDictionary *tra
     static dispatch_once_t once;
     dispatch_once(&once, ^{
         queue = NSOperationQueue.new;
-        queue.name = @"Pixie M4A conversion";
+        queue.name = @"LyssnaOffline M4A conversion";
         queue.qualityOfService = NSQualityOfServiceUserInitiated;
         SAPM4AUpdateConcurrency(queue);
         [NSNotificationCenter.defaultCenter addObserverForName:NSProcessInfoThermalStateDidChangeNotification

@@ -74,12 +74,12 @@ static NSString *snapshotPath(void) {
  // Host fixtures never touch a real profile unless they inject a directory.
  return snapshotDirectory.length?[snapshotDirectory stringByAppendingPathComponent:@"offline-catalog.plist"]:nil;
 #else
- return [NSHomeDirectory() stringByAppendingPathComponent:@"Library/Application Support/Pixie/offline-catalog.plist"];
+ return [NSHomeDirectory() stringByAppendingPathComponent:@"Library/Application Support/LyssnaOffline/offline-catalog.plist"];
 #endif
 }
 static dispatch_queue_t snapshotQueue(void) {
  static dispatch_queue_t queue;static dispatch_once_t once;
- dispatch_once(&once,^{queue=dispatch_queue_create("Pixie.offline-catalog-store",dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL,QOS_CLASS_UTILITY,0));});
+ dispatch_once(&once,^{queue=dispatch_queue_create("LyssnaOffline.offline-catalog-store",dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL,QOS_CLASS_UTILITY,0));});
  return queue;
 }
 static BOOL plainValue(id value){return [value isKindOfClass:NSString.class] || [value isKindOfClass:NSNumber.class];}

@@ -20,7 +20,7 @@ void SAPJournalNoteEntityReset(NSString *entity);
 void SAPJournalNoteUIStatus(NSString *uri, NSInteger status);
 // Счётчики квоты нативного менеджера (current_tracks/music_limit и т.д.).
 void SAPJournalNoteQuota(NSDictionary *quota);
-// Optional audit for explicit Pixie actions and exact local before/after values.
+// Optional audit for explicit LyssnaOffline actions and exact local before/after values.
 // Never records secrets or infers a server response.
 void SAPJournalNoteAction(NSString *name, NSDictionary *facts);
 // Preserve the function ABI while avoiding construction of optional facts when

@@ -106,7 +106,7 @@ UIImageView *SAPArtistStateIcon(NSString *symbol,UIColor *color,NSString *label)
 - (void)installIndicatorLayout {
     if(!self.indicatorHost) {
         self.indicatorHost=[UIView new];self.indicatorHost.translatesAutoresizingMaskIntoConstraints=NO;
-        self.indicatorHost.userInteractionEnabled=NO;self.indicatorHost.accessibilityIdentifier=@"PixieAlbumStatus";
+        self.indicatorHost.userInteractionEnabled=NO;self.indicatorHost.accessibilityIdentifier=@"LyssnaOfflineAlbumStatus";
     }
     if(self.indicatorHost.superview==self.contentView)return;
     [NSLayoutConstraint deactivateConstraints:self.indicatorConstraints?:@[]];
@@ -151,7 +151,7 @@ UIImageView *SAPArtistStateIcon(NSString *symbol,UIColor *color,NSString *label)
         [self.selectionButton setImage:[UIImage systemImageNamed:@"circle" withConfiguration:selectionSymbol] forState:UIControlStateNormal];
         [self.selectionButton setImage:[UIImage systemImageNamed:@"checkmark.circle.fill" withConfiguration:selectionSymbol] forState:UIControlStateSelected];
         self.selectionButton.tintColor=UIColor.systemGreenColor;
-        self.selectionButton.accessibilityIdentifier=@"PixieArtistCategorySelection";
+        self.selectionButton.accessibilityIdentifier=@"LyssnaOfflineArtistCategorySelection";
         [self.contentView addSubview:titles];[self.contentView addSubview:self.selectionButton];
         UILayoutGuide *margins=self.contentView.layoutMarginsGuide;
         [NSLayoutConstraint activateConstraints:@[

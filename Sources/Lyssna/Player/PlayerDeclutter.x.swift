@@ -1,0 +1,695 @@
+import Orion
+import UIKit
+
+struct PlayerButtonsDeclutterGroup: HookGroup {}
+struct PlayerAddToDeclutterGroup: HookGroup {}
+struct PlayerLyricsPreviewDeclutterGroup: HookGroup {}
+struct PlayerCardsDeclutterGroup: HookGroup {}
+struct PlayerAssistantDeclutterGroup: HookGroup {}
+
+enum PlayerPart: String, CaseIterable, Codable {
+    case fullScreen, lyricsPreview, shuffle, `repeat`, addTo, queue, share, connect
+    case talkAboutSong, aboutSong, artistCircles
+    case allCards, lyricsCard, aboutArtist, relatedVideos, songDNA, liveEvents, exploreArtist, releaseCountdown, credits, merch, recommendations
+
+    static let buttons: [PlayerPart] = [.fullScreen, .lyricsPreview, .shuffle, .repeat, .addTo, .queue, .share, .connect]
+    static let cards: [PlayerPart] = [.allCards, .talkAboutSong, .aboutSong, .artistCircles, .lyricsCard, .aboutArtist, .relatedVideos, .songDNA, .liveEvents, .exploreArtist, .releaseCountdown, .credits, .merch, .recommendations]
+
+    var buttonIds: [String] {
+        switch self {
+        case .fullScreen: return ["FullscreenButton", "NowPlayingFullscreenButton", "NowPlaying-FullscreenButton"]
+        case .shuffle: return ["Components.UI.ShuffleButton"]
+        case .repeat: return ["Nowplaying-RepeatButton"]
+        case .share: return ["ShareButtonNowPlayingView"]
+        case .queue: return ["QueueButtonNowPlaying"]
+        case .connect: return ["Components.ConnectButtonOutputSwitcher"]
+        default: return []
+        }
+    }
+
+    var cardMarkers: [String] {
+        switch self {
+        case .talkAboutSong: return ["Martini_NPVCardProviderImpl", "ChatEntryPoint", "Martini_FloatingChatImpl", "ChatPill"]
+        case .aboutSong: return ["AboutTheSong", "Martini_ElementImpl"]
+        case .artistCircles: return ["ArtistPortrait", "ArtistAvatar", "ArtistInfoBubble"]
+        case .lyricsCard: return ["Lyrics_CardElementImpl"]
+        case .aboutArtist: return ["CreatorBiography"]
+        case .relatedVideos: return ["VideoRecommendations"]
+        case .songDNA: return ["SongDNA"]
+        case .liveEvents: return ["LiveEvents_", "OnTourEventCard"]
+        case .exploreArtist: return ["WatchFeed"]
+        case .releaseCountdown: return ["Prerelease"]
+        case .credits: return ["Creator_Credits"]
+        case .merch: return ["Merch_"]
+        case .recommendations: return ["RelatedContentRecommendations"]
+        default: return []
+        }
+    }
+}
+
+enum PlayerDeclutter {
+    private static var configuredHidden = Set(UserDefaults.playerOptions.hiddenParts)
+    private static var lyricsOverride = false
+    static var isLyricsOverrideActive: Bool { lyricsOverride }
+    static var hidden: Set<PlayerPart> {
+        lyricsOverride ? configuredHidden.union([.allCards, .lyricsPreview]) : configuredHidden
+    }
+    private final class ForcedVisibility {
+        weak var view: UIView?
+        let alpha: CGFloat
+        let interactive: Bool
+        let accessible: Bool
+        init(_ view: UIView) { self.view = view; alpha = view.alpha; interactive = view.isUserInteractionEnabled; accessible = view.accessibilityElementsHidden }
+    }
+    private static var forcedViews: [ObjectIdentifier: ForcedVisibility] = [:]
+    static func lyricsKeepsHidden(_ view: UIView) -> Bool {
+        guard lyricsOverride else { return false }
+        return forcedViews[ObjectIdentifier(view)]?.view === view
+            || (view is UICollectionViewCell && objc_getAssociatedObject(view, &interactionKey) != nil)
+    }
+    private static let trimmedScrolls = NSHashTable<UIScrollView>.weakObjects()
+
+    static func setLyricsOverride(_ enabled: Bool, in root: UIView?) {
+        guard lyricsOverride != enabled else { return }
+        releaseScrollLocks()
+        configuredHidden = Set(UserDefaults.playerOptions.hiddenParts)
+        lyricsOverride = enabled
+        if !enabled {
+            for saved in forcedViews.values {
+                saved.view?.alpha = saved.alpha
+                saved.view?.isUserInteractionEnabled = saved.interactive
+                saved.view?.accessibilityElementsHidden = saved.accessible
+            }
+            forcedViews.removeAll()
+        }
+        var queue = root.map { [$0] } ?? []
+        while let view = queue.popLast() {
+            if NSStringFromClass(type(of: view)).contains("KaraokeCanvasContainer") { continue }
+            if let collection = view as? UICollectionView { cardCollections.add(collection) }
+            queue.append(contentsOf: view.subviews)
+        }
+        for collection in cardCollections.allObjects {
+            // Spotify owns the data source; restore sizing without issuing item updates.
+            for cell in collection.visibleCells {
+                resetCard(cell)
+                cell.contentView.invalidateIntrinsicContentSize()
+                cell.setNeedsLayout()
+            }
+            let layout = collection.collectionViewLayout
+            if let flow = layout as? UICollectionViewFlowLayout {
+                let context = flow.invalidationContext(forBoundsChange: collection.bounds)
+                if let context = context as? UICollectionViewFlowLayoutInvalidationContext {
+                    context.invalidateFlowLayoutAttributes = true
+                    context.invalidateFlowLayoutDelegateMetrics = true
+                }
+                flow.invalidateLayout(with: context)
+            } else {
+                layout.invalidateLayout()
+            }
+            collection.setNeedsLayout()
+        }
+        root?.setNeedsLayout()
+        PlayerAssistantVisibility.refresh()
+        writeDebugLog("[Karaoke][declutter] temporary All Cards and Lyrics Preview=\(enabled)")
+    }
+    static let cardsMeter = PerfMeter("Player][Cards")
+    static let buttonsMeter = PerfMeter("Player][Buttons")
+    private static var loggedCards = Set<PlayerPart>()
+    private static var cacheKey: UInt8 = 0
+    private static var portraitKey: UInt8 = 0
+    private static var promptKey: UInt8 = 0
+    private static var bounceKey: UInt8 = 0
+    private static let cardCollections = NSHashTable<UICollectionView>.weakObjects()
+    private static let retryWindow: CFTimeInterval = 5
+
+    private final class Verdict {
+        weak var content: UIView?
+        let part: PlayerPart?
+        let settled: Bool
+        let born: CFTimeInterval
+        let time = CACurrentMediaTime()
+        init(content: UIView?, part: PlayerPart?, settled: Bool, born: CFTimeInterval) {
+            self.content = content
+            self.part = part
+            self.settled = settled
+            self.born = born
+        }
+    }
+
+    static var hiddenIds: Set<String> { Set(hidden.flatMap(\.buttonIds)) }
+
+    static func hideButtons(in unit: UIViewController) {
+        for item in row(in: unit) where item.alpha != 0 {
+            let id = item.accessibilityIdentifier ?? item.lyssnaFirst(UIView.self) { $0.accessibilityIdentifier != nil }?.accessibilityIdentifier
+            if let id, hiddenIds.contains(id) { vanish(item) }
+            let identity = ((id ?? "") + (item.accessibilityLabel ?? "")).lowercased()
+            if hidden.contains(.fullScreen), identity.contains("fullscreen") || identity.contains("full screen") { vanish(item) }
+        }
+    }
+
+    static func row(in unit: UIViewController) -> [UIView] {
+        unit.viewIfLoaded?.lyssnaFirst(UIStackView.self)?.arrangedSubviews ?? []
+    }
+
+    // Arranged views vanish by alpha: some Spotify stacks trap when an arranged view is hidden.
+    static func vanish(_ view: UIView, part: PlayerPart? = nil) {
+        if lyricsOverride, let part, !configuredHidden.contains(.allCards), !configuredHidden.contains(part),
+           !(part == .talkAboutSong && configuredHidden.contains(.aboutSong)) {
+            let key = ObjectIdentifier(view)
+            if forcedViews[key]?.view !== view { forcedViews[key] = ForcedVisibility(view) }
+        }
+        view.alpha = 0
+        view.isUserInteractionEnabled = false
+        view.accessibilityElementsHidden = true
+    }
+
+    static func hideArtistCircles(in cell: UIView, below: CGFloat? = nil) {
+        guard hidden.contains(.artistCircles) || hidden.contains(.allCards) else { return }
+        var queue = cell.subviews
+        while !queue.isEmpty {
+            let view = queue.removeFirst()
+            queue.append(contentsOf: view.subviews)
+            let width = view.bounds.width
+            let height = view.bounds.height
+            guard width >= 48, height >= 48, abs(width - height) < width * 0.1 else { continue }
+            let name = NSStringFromClass(type(of: view))
+            let circular = view.layer.cornerRadius >= width * 0.45
+            let portrait = name.contains("Avatar") || name.contains("Portrait") || name.contains("ArtistAboutImageView")
+            guard portrait || circular else { continue }
+            if let below, let window = view.window,
+               view.convert(view.bounds, to: window).midY < below { continue }
+            var ancestor: UIView? = view
+            var inPlayer = false
+            while let current = ancestor {
+                var context = NSStringFromClass(type(of: current))
+                if let controller = current.next as? UIViewController { context += NSStringFromClass(type(of: controller)) }
+                if context.contains("NowPlaying_Bar") { break }
+                if context.contains("NowPlaying") { inPlayer = true; break }
+                ancestor = current.superview
+            }
+            guard inPlayer else { continue }
+            let image = view.layer.contents != nil || name.contains("Image") || view.lyssnaFirst(UIView.self, where: {
+                $0 is UIImageView || $0.layer.contents != nil || NSStringFromClass(type(of: $0)).contains("Image")
+            }) != nil
+            if portrait || image {
+                vanish(view, part: .artistCircles)
+                var ancestor = view.superview
+                while let current = ancestor {
+                    if let cell = current as? UICollectionViewCell,
+                       objc_getAssociatedObject(cell, &portraitKey) == nil {
+                        objc_setAssociatedObject(cell, &portraitKey, true, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+                        objc_setAssociatedObject(cell, &cacheKey, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+                        (cell.superview as? UICollectionView)?.collectionViewLayout.invalidateLayout()
+                    }
+                    ancestor = current.superview
+                }
+            }
+        }
+    }
+
+    private static func hasVisibleContent(_ root: UIView) -> Bool {
+        var queue = [root]
+        while !queue.isEmpty {
+            let view = queue.removeFirst()
+            guard !view.isHidden, view.alpha > 0.01 else { continue }
+            if let label = view as? UILabel, !(label.text ?? "").isEmpty { return true }
+            if let image = view as? UIImageView, image.image != nil { return true }
+            if let button = view as? UIButton,
+               !(button.currentTitle ?? "").isEmpty || button.currentImage != nil { return true }
+            let name = NSStringFromClass(type(of: view))
+            // Opaque renderers may paint text without UILabel descendants; preserve them.
+            if name.contains("HostingView") { return true }
+            queue.append(contentsOf: view.subviews)
+        }
+        return false
+    }
+
+    private static var interactionKey: UInt8 = 0
+    private final class CardInteraction {
+        let alpha: CGFloat
+        let enabled: Bool
+        let accessibilityHidden: Bool
+        let clips: Bool
+        init(_ cell: UIView) { alpha = cell.alpha; enabled = cell.isUserInteractionEnabled; accessibilityHidden = cell.accessibilityElementsHidden; clips = cell.clipsToBounds }
+    }
+    static func updateCardInteraction(_ cell: UIView, hidden: Bool) {
+        if hidden {
+            if objc_getAssociatedObject(cell, &interactionKey) == nil {
+                objc_setAssociatedObject(cell, &interactionKey, CardInteraction(cell), .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+            }
+            cell.alpha = 0
+            cell.isUserInteractionEnabled = false
+            cell.accessibilityElementsHidden = true
+        } else if let saved = objc_getAssociatedObject(cell, &interactionKey) as? CardInteraction {
+            // Release the visibility lock before restoring a genuinely reused card.
+            objc_setAssociatedObject(cell, &interactionKey, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+            cell.alpha = saved.alpha
+            cell.isUserInteractionEnabled = saved.enabled
+            cell.accessibilityElementsHidden = saved.accessibilityHidden
+            cell.clipsToBounds = saved.clips
+        }
+    }
+
+    static func resetCard(_ cell: UIView) {
+        updateCardInteraction(cell, hidden: false)
+        objc_setAssociatedObject(cell, &cacheKey, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        objc_setAssociatedObject(cell, &portraitKey, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+    }
+
+    static func hideLatePlayerElement(_ view: UIView) {
+        guard hidden.contains(.allCards) || hidden.contains(.talkAboutSong) || hidden.contains(.aboutSong) else { return }
+        if lyricsOverride, let cell = view as? UICollectionViewCell, hiddenCard(for: cell) != nil {
+            updateCardInteraction(cell, hidden: true)
+        }
+        var name = NSStringFromClass(type(of: view))
+        if let controller = view.next as? UIViewController { name += NSStringFromClass(type(of: controller)) }
+        if ["Martini_NPVCardProviderImpl", "Martini_ElementImpl", "Martini_FloatingChatImpl", "AboutTheSong"].contains(where: name.contains) {
+            hideSongPrompt(view)
+        }
+    }
+
+    static func hideSongPrompt(_ view: UIView) {
+        guard hidden.contains(.talkAboutSong) || hidden.contains(.allCards),
+              view.window != nil, view.bounds.width > 1 else { return }
+        var branch = view
+        // Include the prompt's grey wrapper, but stop before unrelated controls/content.
+        while let parent = branch.superview, !(parent is UICollectionViewCell),
+              !(parent is UIScrollView), parent.bounds.height <= 140,
+              parent.subviews.allSatisfy({ $0 === branch || !hasVisibleContent($0) }) {
+            branch = parent
+        }
+        vanish(branch, part: .talkAboutSong)
+        if objc_getAssociatedObject(view, &promptKey) == nil {
+            objc_setAssociatedObject(view, &promptKey, true, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+            var ancestor = branch.superview
+            while let current = ancestor {
+                if let cell = current as? UICollectionViewCell {
+                    objc_setAssociatedObject(cell, &cacheKey, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+                }
+                if let collection = current as? UICollectionView { collection.collectionViewLayout.invalidateLayout() }
+                ancestor = current.superview
+            }
+        }
+    }
+
+    private static func cardsAreCollapsed(in root: UIView) -> Bool {
+        if hidden.contains(.allCards) { return true }
+        let collections = cardCollections.allObjects.filter { $0 === root || $0.isDescendant(of: root) }
+        guard !collections.isEmpty else { return false }
+        for collection in collections {
+            for section in 0..<collection.numberOfSections {
+                for item in 0..<collection.numberOfItems(inSection: section) {
+                    let index = IndexPath(item: item, section: section)
+                    guard let attributes = collection.collectionViewLayout.layoutAttributesForItem(at: index) else { return false }
+                    if attributes.isHidden || attributes.size.height <= 1 { continue }
+                    // An uninstantiated nonzero item could be a real card; preserve access to it.
+                    guard let cell = collection.cellForItem(at: index) else { return false }
+                    if cell.lyssnaContainsClass("NowPlaying_ModesImpl") { continue }
+                    if hiddenCard(for: cell) == nil { return false }
+                }
+            }
+        }
+        return true
+    }
+
+    private static var scrollOffsetKey: UInt8 = 0
+    static func constrainedOffset(_ proposed: CGPoint, in scroll: UIScrollView) -> CGPoint {
+        guard let y = objc_getAssociatedObject(scroll, &scrollOffsetKey) as? NSNumber else { return proposed }
+        return CGPoint(x: proposed.x, y: CGFloat(y.doubleValue))
+    }
+
+    /// Once collapsed cards leave no vertical overflow, prevent elastic/stale empty space.
+    private static func releaseScrollLocks() {
+        for scroll in trimmedScrolls.allObjects {
+            objc_setAssociatedObject(scroll, &scrollOffsetKey, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+            if let saved = objc_getAssociatedObject(scroll, &bounceKey) as? [Bool], saved.count == 3 {
+                scroll.bounces = saved[0]; scroll.alwaysBounceVertical = saved[1]; scroll.isScrollEnabled = saved[2]
+                objc_setAssociatedObject(scroll, &bounceKey, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+            }
+        }
+        trimmedScrolls.removeAllObjects()
+    }
+    static func trimEmptyTail(in root: UIView) {
+        // The lyrics presenter owns its scroll lock; never capture its disabled state as a native default.
+        guard !lyricsOverride else { return }
+        guard hidden.contains(.allCards) || [.talkAboutSong, .aboutSong, .artistCircles].allSatisfy(hidden.contains) else {
+            releaseScrollLocks()
+            return
+        }
+        let collapsed = cardsAreCollapsed(in: root)
+        var queue = [root]
+        while !queue.isEmpty {
+            let view = queue.removeFirst()
+            if NSStringFromClass(type(of: view)).contains("KaraokeCanvasContainer") { continue }
+            queue.append(contentsOf: view.subviews)
+            guard let scroll = view as? UIScrollView, let window = scroll.window,
+                  scroll.bounds.width >= window.bounds.width * 0.8,
+                  scroll.bounds.height >= window.bounds.height * 0.5,
+                  scroll.contentSize.width <= scroll.bounds.width + 1 else { continue }
+            let empty = collapsed || scroll.contentSize.height <= scroll.bounds.height + 1
+            if !collapsed {
+                objc_setAssociatedObject(scroll, &scrollOffsetKey, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+                if let saved = objc_getAssociatedObject(scroll, &bounceKey) as? [Bool], saved.count == 3 { scroll.isScrollEnabled = saved[2] }
+            }
+            if empty {
+                if objc_getAssociatedObject(scroll, &bounceKey) == nil {
+                    trimmedScrolls.add(scroll)
+                    objc_setAssociatedObject(scroll, &bounceKey, [scroll.bounces, scroll.alwaysBounceVertical, scroll.isScrollEnabled], .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+                }
+                scroll.bounces = false
+                scroll.alwaysBounceVertical = false
+                if collapsed { scroll.isScrollEnabled = false }
+                let lower = -scroll.adjustedContentInset.top
+                if collapsed { objc_setAssociatedObject(scroll, &scrollOffsetKey, NSNumber(value: Double(lower)), .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
+                let upper = collapsed ? lower : max(lower, scroll.contentSize.height - scroll.bounds.height + scroll.adjustedContentInset.bottom)
+                let y = min(upper, max(lower, scroll.contentOffset.y))
+                if abs(y - scroll.contentOffset.y) > 0.5 {
+                    scroll.setContentOffset(CGPoint(x: scroll.contentOffset.x, y: y), animated: false)
+                }
+            } else if let saved = objc_getAssociatedObject(scroll, &bounceKey) as? [Bool], saved.count == 3 {
+                objc_setAssociatedObject(scroll, &scrollOffsetKey, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+                scroll.bounces = saved[0]
+                scroll.alwaysBounceVertical = saved[1]
+                scroll.isScrollEnabled = saved[2]
+                objc_setAssociatedObject(scroll, &bounceKey, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+            }
+            // Continue through native wrappers; the karaoke container and horizontal carousels are excluded.
+        }
+    }
+
+    static func hiddenCard(for cell: UIView) -> PlayerPart? {
+        let content = (cell as? UICollectionViewCell)?.contentView.subviews.first
+        let now = CACurrentMediaTime()
+        var born = now
+        if let verdict = objc_getAssociatedObject(cell, &cacheKey) as? Verdict, verdict.content === content, content != nil {
+            // A card's inner content can arrive after its first check, so unsettled misses expire.
+            if verdict.part != nil || verdict.settled || now - verdict.time < 1 { return verdict.part }
+            born = verdict.born
+        }
+        let (part, known) = classify(cell)
+        let settled = content != nil && (known || now - born >= retryWindow)
+        objc_setAssociatedObject(cell, &cacheKey, Verdict(content: content, part: part, settled: settled, born: born), .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        return part
+    }
+
+    private static func classify(_ cell: UIView) -> (part: PlayerPart?, known: Bool) {
+        var ancestor = cell.superview
+        while let view = ancestor {
+            if type(of: view) == type(of: cell) { return (nil, true) }
+            ancestor = view.superview
+        }
+        var names = ""
+        var queue = [cell]
+        while !queue.isEmpty {
+            let view = queue.removeFirst()
+            if view !== cell, view is UICollectionView { view.layoutIfNeeded() }
+            names += NSStringFromClass(type(of: view))
+            if let id = view.accessibilityIdentifier { names += id }
+            queue += view.subviews
+        }
+        guard names.contains("NowPlaying_ScrollAPI") || PlayerPlacement.contains(cell) else { return (nil, false) }
+        guard !names.contains("NowPlaying_ModesImpl") else { return (nil, true) }
+        var cardAncestor = cell.superview
+        while let current = cardAncestor {
+            if let collection = current as? UICollectionView { cardCollections.add(collection); break }
+            cardAncestor = current.superview
+        }
+        if objc_getAssociatedObject(cell, &portraitKey) != nil, !hasVisibleContent(cell) {
+            return (.artistCircles, true)
+        }
+        let matched = PlayerPart.cards.first { part in part.cardMarkers.contains { names.contains($0) } }
+        let part: PlayerPart?
+        if let matched, hidden.contains(matched) {
+            part = matched
+        } else if hidden.contains(.allCards), !names.contains("NowPlaying_ModesImpl") {
+            part = .allCards
+        } else {
+            part = nil
+        }
+        if let part, loggedCards.insert(matched ?? part).inserted {
+            lyssnaLog("[Lyssna][Player] Collapsed card %@", (matched ?? part).rawValue)
+        }
+        return (part, matched != nil || names.contains("NowPlaying_ModesImpl"))
+    }
+}
+
+extension UIView {
+    func lyssnaContainsClass(_ fragment: String) -> Bool {
+        lyssnaFirst(UIView.self) { NSStringFromClass(type(of: $0)).contains(fragment) } != nil
+    }
+}
+
+class PlayerCardCellHook: ClassHook<UICollectionViewCell> {
+    typealias Group = PlayerCardsDeclutterGroup
+    static let targetName = "_TtC12Element_List18CollectionViewCell"
+
+    func layoutSubviews() {
+        orig.layoutSubviews()
+        PlayerDeclutter.hideArtistCircles(in: target)
+        PlayerDeclutter.updateCardInteraction(target, hidden: PlayerDeclutter.hiddenCard(for: target) != nil)
+    }
+
+    func prepareForReuse() {
+        orig.prepareForReuse()
+        PlayerDeclutter.resetCard(target)
+    }
+
+    func preferredLayoutAttributesFittingAttributes(_ attributes: UICollectionViewLayoutAttributes) -> UICollectionViewLayoutAttributes {
+        let result = orig.preferredLayoutAttributesFittingAttributes(attributes)
+        let part = PlayerDeclutter.cardsMeter.measure { PlayerDeclutter.hiddenCard(for: target) }
+        PlayerDeclutter.updateCardInteraction(target, hidden: part != nil)
+        guard part != nil else { return result }
+        let collapsed = result.copy() as! UICollectionViewLayoutAttributes
+        collapsed.size = CGSize(width: result.size.width, height: 0)
+        target.clipsToBounds = true
+        return collapsed
+    }
+}
+
+class PlayerControlsDeclutterHook: ClassHook<UIViewController> {
+    typealias Group = PlayerButtonsDeclutterGroup
+    static let targetName = "_TtC20NowPlaying_ModesImpl28PlaybackControlsElementsUnit"
+
+    func viewDidLayoutSubviews() {
+        orig.viewDidLayoutSubviews()
+        PlayerDeclutter.buttonsMeter.measure { PlayerDeclutter.hideButtons(in: target) }
+    }
+}
+
+class PlayerFooterDeclutterHook: ClassHook<UIViewController> {
+    typealias Group = PlayerButtonsDeclutterGroup
+    static let targetName = "_TtC20NowPlaying_ModesImpl18FooterElementsUnit"
+
+    func viewDidLayoutSubviews() {
+        orig.viewDidLayoutSubviews()
+        PlayerDeclutter.buttonsMeter.measure { PlayerDeclutter.hideButtons(in: target) }
+    }
+}
+
+class PlayerInfoDeclutterHook: ClassHook<UIViewController> {
+    typealias Group = PlayerAddToDeclutterGroup
+    static let targetName = "_TtC20NowPlaying_ModesImpl23InformationElementsUnit"
+
+    func viewDidLayoutSubviews() {
+        orig.viewDidLayoutSubviews()
+        for item in PlayerDeclutter.row(in: target) where item.alpha != 0 && item.lyssnaContainsClass("AddToButton") {
+            PlayerDeclutter.vanish(item)
+        }
+    }
+}
+
+class PlayerLyricsPreviewHook: ClassHook<UIView> {
+    typealias Group = PlayerLyricsPreviewDeclutterGroup
+    static let targetName = "_TtC17Canvas_CommonImpl26CanvasNowPlayingLyricsView"
+
+    func layoutSubviews() {
+        orig.layoutSubviews()
+        if PlayerDeclutter.hidden.contains(.lyricsPreview) { PlayerDeclutter.vanish(target, part: .lyricsPreview) }
+    }
+}
+
+func activatePlayerDeclutter() {
+    if !UserDefaults.standard.bool(forKey: "lyssnaHideExtraNowPlayingCardsV2") {
+        var options = UserDefaults.playerOptions
+        if !options.hiddenParts.contains(.allCards) { options.hiddenParts.append(.allCards) }
+        UserDefaults.playerOptions = options
+        UserDefaults.standard.set(true, forKey: "lyssnaHideExtraNowPlayingCardsV2")
+    }
+
+    if !UserDefaults.standard.bool(forKey: "lyssnaTrimmedLyricsFooterV1") {
+        var options = UserDefaults.playerOptions
+        for part in [PlayerPart.share, .queue, .fullScreen, .lyricsPreview, .lyricsCard] where !options.hiddenParts.contains(part) {
+            options.hiddenParts.append(part)
+        }
+        UserDefaults.playerOptions = options
+        UserDefaults.standard.set(true, forKey: "lyssnaTrimmedLyricsFooterV1")
+    }
+    let hidden = PlayerDeclutter.hidden
+    let lyricsSupport: Bool
+    if #available(iOS 15.0, *) { lyricsSupport = true } else { lyricsSupport = false }
+    guard !hidden.isEmpty || lyricsSupport else { return }
+    let start = CFAbsoluteTimeGetCurrent()
+    var active = [String]()
+    func activate(_ name: String, _ wanted: Bool, _ group: HookGroup, _ classes: String...) {
+        guard wanted else { return }
+        let missing = classes.filter { NSClassFromString($0) == nil }
+        guard missing.isEmpty else {
+            lyssnaLog("[Lyssna][Player] Skipped %@: missing %@", name, missing.joined(separator: ", "))
+            return
+        }
+        group.activate()
+        active.append(name)
+    }
+
+    activate("player extras", lyricsSupport || hidden.contains(.talkAboutSong) || hidden.contains(.artistCircles) || hidden.contains(.allCards),
+             PlayerAssistantDeclutterGroup(), PlayerAssistantHook.targetName, PlayerAssistantFooterHook.targetName)
+    activate("buttons", !PlayerDeclutter.hiddenIds.isEmpty, PlayerButtonsDeclutterGroup(),
+             PlayerControlsDeclutterHook.targetName, PlayerFooterDeclutterHook.targetName)
+    activate("add to", hidden.contains(.addTo), PlayerAddToDeclutterGroup(), PlayerInfoDeclutterHook.targetName)
+    activate("lyrics preview", lyricsSupport || hidden.contains(.lyricsPreview), PlayerLyricsPreviewDeclutterGroup(), PlayerLyricsPreviewHook.targetName)
+    activate("cards", lyricsSupport || !hidden.isDisjoint(with: PlayerPart.cards), PlayerCardsDeclutterGroup(), PlayerCardCellHook.targetName)
+    lyssnaLog("[Lyssna][Player] Declutter: hiding %@; active %@ (%.2f ms)",
+             hidden.map(\.rawValue).sorted().joined(separator: ", "), active.joined(separator: ", "),
+             (CFAbsoluteTimeGetCurrent() - start) * 1000)
+}
+
+
+/// The prompt can float outside collection cells; suppress its entire root, including its backdrop.
+private enum PlayerAssistantVisibility {
+    static weak var footer: UIView?
+    static let roots = NSHashTable<UIView>.weakObjects()
+    private static var savedAlphaKey: UInt8 = 0
+    private final class Visibility {
+        let alpha: CGFloat
+        let interactive: Bool
+        let accessibilityHidden: Bool
+        init(_ view: UIView) {
+            alpha = view.alpha
+            interactive = view.isUserInteractionEnabled
+            accessibilityHidden = view.accessibilityElementsHidden
+        }
+    }
+
+    static func refresh() {
+        var visible = footer?.window != nil
+        if let footer, let window = footer.window {
+            visible = footer.convert(footer.bounds, to: window).intersects(window.bounds)
+            var ancestor: UIView? = footer
+            while let view = ancestor {
+                if view.isHidden || view.alpha <= 0.01 { visible = false }
+                ancestor = view.superview
+            }
+        }
+        let hidePrompt = (visible || PlayerDeclutter.isLyricsOverrideActive) && (PlayerDeclutter.hidden.contains(.talkAboutSong) || PlayerDeclutter.hidden.contains(.allCards))
+        for root in roots.allObjects {
+            if hidePrompt {
+                if objc_getAssociatedObject(root, &savedAlphaKey) == nil {
+                    objc_setAssociatedObject(root, &savedAlphaKey, Visibility(root), .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+                }
+                PlayerDeclutter.vanish(root)
+            } else if let alpha = objc_getAssociatedObject(root, &savedAlphaKey) as? Visibility {
+                root.alpha = alpha.alpha
+                root.isUserInteractionEnabled = alpha.interactive
+                root.accessibilityElementsHidden = alpha.accessibilityHidden
+                objc_setAssociatedObject(root, &savedAlphaKey, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+            }
+        }
+    }
+}
+
+class PlayerAssistantHook: ClassHook<UIViewController> {
+    typealias Group = PlayerAssistantDeclutterGroup
+    static let targetName = "_TtC24Martini_FloatingChatImpl26FloatingChatViewController"
+
+    func viewDidLayoutSubviews() {
+        orig.viewDidLayoutSubviews()
+        if let root = target.viewIfLoaded { PlayerAssistantVisibility.roots.add(root) }
+        PlayerAssistantVisibility.refresh()
+    }
+}
+
+class PlayerAssistantFooterHook: ClassHook<UIViewController> {
+    typealias Group = PlayerAssistantDeclutterGroup
+    static let targetName = "_TtC20NowPlaying_ModesImpl18FooterElementsUnit"
+
+    func viewDidLayoutSubviews() {
+        orig.viewDidLayoutSubviews()
+        PlayerAssistantVisibility.footer = target.viewIfLoaded
+        PlayerAssistantVisibility.refresh()
+        if let footer = target.viewIfLoaded, let window = footer.window {
+            // Portraits may float outside collection cells on the Canvas layout.
+            let row = footer.lyssnaFirst(UIStackView.self) ?? footer
+            let floor = row.convert(row.bounds, to: window).minY
+            var playerRoot = footer
+            var ancestor: UIView? = footer
+            while let view = ancestor, view !== window {
+                var name = NSStringFromClass(type(of: view))
+                if let controller = view.next as? UIViewController { name += NSStringFromClass(type(of: controller)) }
+                if name.contains("NowPlaying"), !name.contains("NowPlaying_Bar") { playerRoot = view }
+                ancestor = view.superview
+            }
+            PlayerDeclutter.hideArtistCircles(in: playerRoot, below: floor)
+        }
+    }
+
+    func viewDidDisappear(_ animated: Bool) {
+        orig.viewDidDisappear(animated)
+        PlayerAssistantVisibility.footer = nil
+        PlayerAssistantVisibility.refresh()
+    }
+}
+
+
+class PlayerSongPromptHook: ClassHook<UIView> {
+    typealias Group = PlayerAssistantDeclutterGroup
+    static let targetName = "_TtC27Martini_NPVCardProviderImpl18ChatEntryPointView"
+    func layoutSubviews() { orig.layoutSubviews(); PlayerDeclutter.hideSongPrompt(target) }
+    func didMoveToWindow() { orig.didMoveToWindow(); PlayerDeclutter.hideSongPrompt(target) }
+}
+
+class PlayerSongPromptBackgroundHook: ClassHook<UIView> {
+    typealias Group = PlayerAssistantDeclutterGroup
+    static let targetName = "_TtC27Martini_NPVCardProviderImpl28ChatEntryPointBackgroundView"
+    func layoutSubviews() { orig.layoutSubviews(); PlayerDeclutter.hideSongPrompt(target) }
+    func didMoveToWindow() { orig.didMoveToWindow(); PlayerDeclutter.hideSongPrompt(target) }
+}
+
+class PlayerSongPromptAlternateHook: ClassHook<UIView> {
+    typealias Group = PlayerAssistantDeclutterGroup
+    static let targetName = "_TtC27Martini_NPVCardProviderImpl35ChatEntryPointContentsAlternateView"
+    func layoutSubviews() { orig.layoutSubviews(); PlayerDeclutter.hideSongPrompt(target) }
+    func didMoveToWindow() { orig.didMoveToWindow(); PlayerDeclutter.hideSongPrompt(target) }
+}
+
+class PlayerEmptyTailHook: ClassHook<UIViewController> {
+    typealias Group = PlayerCardsDeclutterGroup
+    static let targetName = "_TtC21NowPlaying_ScrollImpl23NPVScrollViewController"
+    func viewDidLayoutSubviews() {
+        orig.viewDidLayoutSubviews()
+        if let root = target.viewIfLoaded { PlayerDeclutter.trimEmptyTail(in: root) }
+    }
+}
+
+// Spotify also moves its wrapper scroll views programmatically after laying out collapsed cards.
+// Restrict only instances marked by trimEmptyTail; all other scrolling keeps its normal offset.
+class PlayerCollapsedScrollHook: ClassHook<UIScrollView> {
+    typealias Group = PlayerCardsDeclutterGroup
+    @objc(setContentOffset:)
+    func setContentOffset(_ offset: CGPoint) {
+        orig.setContentOffset(KaraokeOverlayPresenter.constrainedPlayerOffset(PlayerDeclutter.constrainedOffset(offset, in: target), in: target))
+    }
+    @objc(setContentOffset:animated:)
+    func setContentOffset(_ offset: CGPoint, animated: Bool) {
+        orig.setContentOffset(KaraokeOverlayPresenter.constrainedPlayerOffset(PlayerDeclutter.constrainedOffset(offset, in: target), in: target), animated: animated)
+    }
+}
+
+// Floating song panels can arrive after the player's collection cells have already collapsed.
+class PlayerLateFloatingPanelHook: ClassHook<UIViewController> {
+    typealias Group = PlayerCardsDeclutterGroup
+    func viewDidLayoutSubviews() {
+        orig.viewDidLayoutSubviews()
+        guard let view = target.viewIfLoaded, PlayerPlacement.contains(view) else { return }
+        PlayerDeclutter.hideLatePlayerElement(view)
+    }
+}

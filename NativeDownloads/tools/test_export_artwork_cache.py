@@ -10,7 +10,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 
-with tempfile.TemporaryDirectory(prefix="pixie-artwork-cache-") as temporary:
+with tempfile.TemporaryDirectory(prefix="lyssnaOffline-artwork-cache-") as temporary:
     work = Path(temporary)
     source = (ROOT / "src/Export/ExportArtwork.m").read_text()
     start = source.index("// Only explicit export requests")

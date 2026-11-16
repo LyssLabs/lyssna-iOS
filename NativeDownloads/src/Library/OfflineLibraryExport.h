@@ -1,6 +1,6 @@
 #pragma once
 #import <Foundation/Foundation.h>
-// Export selected verified offline tracks using the current Pixie format, then
+// Export selected verified offline tracks using the current LyssnaOffline format, then
 // package them. Partial failures are returned explicitly; no source is deleted.
 NSProgress *SAPExportOfflineLibrarySelection(NSArray<NSDictionary *> *tracks,BOOL zip,
     void (^progress)(NSUInteger completed,NSUInteger total,NSString *message),

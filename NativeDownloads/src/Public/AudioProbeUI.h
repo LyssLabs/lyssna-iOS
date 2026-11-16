@@ -22,6 +22,6 @@ typedef NS_ENUM(NSInteger, SAPSettingsAction) {
 @end
 void SAPInstallDownloadSettings(void);
 @class UIViewController;
-// The Pixie download manager page, for hosts that list it in their own settings.
+// The LyssnaOffline download manager page, for hosts that list it in their own settings.
 UIViewController *SAPCreateDownloadsSettings(void);
 NSDictionary *SAPDownloadSettingsInstallReport(void);

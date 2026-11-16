@@ -14,7 +14,7 @@ SOURCE=Path(__file__).resolve().parents[1]/'src/Export/NativeShareBridge.swift'
 def build_native_share(output: Path, sdk: str, target: str='arm64-apple-ios15.0') -> dict:
     output=Path(output).resolve();output.parent.mkdir(parents=True,exist_ok=True)
     common=['-target',target,'-sdk',str(sdk)]
-    subprocess.run(['xcrun','swiftc',*common,'-O','-parse-as-library','-module-name','PixieNativeShare',
+    subprocess.run(['xcrun','swiftc',*common,'-O','-parse-as-library','-module-name','LyssnaOfflineNativeShare',
                     '-emit-object',str(SOURCE),'-o',str(output)],check=True)
     # Use this installed Swift driver's compatibility archives and search paths,
     # rather than pinning runtime library names to a particular Xcode release.

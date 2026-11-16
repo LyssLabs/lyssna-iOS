@@ -67,7 +67,7 @@ static NSMutableSet<SAPSlotRequest *> *slotRequests;
     if([method isEqual:@"POST"]){request.HTTPBody=NSData.data;[request setValue:@"application/x-protobuf" forHTTPHeaderField:@"Content-Type"];}
     SAP_JOURNAL_ACTION(@"offline_slot_http_sent",@{@"method":method,@"path":path});
     __block SAPTraceID trace=0;
-    SAPTraceWithOperation(self.traceOperation,^{if(SAPTraceIsActive())trace=SAPTraceBegin(@"management_https_request",@"pixie",@{@"method":method,@"host":@"spclient.wg.spotify.com",@"path":path,@"mutating":@([method isEqual:@"POST"]),@"automatic_replay":@NO});});
+    SAPTraceWithOperation(self.traceOperation,^{if(SAPTraceIsActive())trace=SAPTraceBegin(@"management_https_request",@"lyssnaOffline",@{@"method":method,@"host":@"spclient.wg.spotify.com",@"path":path,@"mutating":@([method isEqual:@"POST"]),@"automatic_replay":@NO});});
     __weak SAPSlotRequest *weakSelf=self;
     [[self.session dataTaskWithRequest:request completionHandler:^(NSData *data,NSURLResponse *response,NSError *error){
         dispatch_async(dispatch_get_main_queue(),^{
@@ -88,7 +88,7 @@ static SAPSlotRequest *beginSlots(void (^completion)(NSDictionary *,NSString *))
     if(slotOperationActive){if(completion)completion(nil,@"Another offline-device operation is in progress.");return nil;}
     slotOperationActive=YES;
     SAPSlotRequest *op=[SAPSlotRequest new];op.completion=completion;op.released=[NSMutableArray array];
-    op.traceOperation=SAPTraceCurrentOperation();if(!op.traceOperation&&SAPTraceIsActive())op.traceOperation=SAPTraceBegin(@"offline_device_management",@"pixie_ui",@{});
+    op.traceOperation=SAPTraceCurrentOperation();if(!op.traceOperation&&SAPTraceIsActive())op.traceOperation=SAPTraceBegin(@"offline_device_management",@"lyssnaOffline_ui",@{});
     if(!slotRequests)slotRequests=[NSMutableSet set];[slotRequests addObject:op];
     NSURLSessionConfiguration *configuration=NSURLSessionConfiguration.ephemeralSessionConfiguration;
     configuration.URLCache=nil;configuration.HTTPCookieStorage=nil;configuration.HTTPShouldSetCookies=NO;
@@ -122,11 +122,11 @@ static void withHeaders(SAPSlotRequest *op,void (^ready)(SAPSlotRequest *)) {
 #ifdef SAP_TESTING
     if(testHeaders){testHeaders(received);return;}
 #endif
-    // EeveeSpotify exposes the headers it already observes as a class method
-    // (EeveeSpotify.PixieAuthentication).
-    Class eevee=NSClassFromString(@"PixieAuthentication");
+    // Lyssna exposes the headers it already observes as a class method
+    // (Lyssna.LyssnaOfflineAuthentication).
+    Class lyssna=NSClassFromString(@"LyssnaOfflineAuthentication");
     SEL selector=NSSelectorFromString(@"headersWithCompletion:");
-    Method method=eevee?class_getClassMethod(eevee,selector):NULL;
+    Method method=lyssna?class_getClassMethod(lyssna,selector):NULL;
     char resultType[8]={0},callbackType[8]={0};
     BOOL valid=method && method_getNumberOfArguments(method)==3;
     if(valid) {
@@ -135,9 +135,9 @@ static void withHeaders(SAPSlotRequest *op,void (^ready)(SAPSlotRequest *)) {
         valid=resultType[0]=='v' && callbackType[0]=='@' && callbackType[1]=='?';
     }
     SAP_TRACE("offline_devices","authentication_provider_resolved",op.traceOperation,
-        @{@"provider":valid?@"Eevee.PixieAuthentication":@"none",@"class_present":@(eevee!=Nil),@"signature_valid":@(valid),@"credentials_logged":@NO});
-    if(!valid){[op finish:nil error:@"The authenticated request provider (EeveeSpotify) is unavailable. Play one track online on this device, then refresh."];return;}
-    ((void (*)(id,SEL,void (^)(NSDictionary *)))objc_msgSend)(eevee,selector,received);
+        @{@"provider":valid?@"Lyssna.LyssnaOfflineAuthentication":@"none",@"class_present":@(lyssna!=Nil),@"signature_valid":@(valid),@"credentials_logged":@NO});
+    if(!valid){[op finish:nil error:@"The authenticated request provider (Lyssna) is unavailable. Play one track online on this device, then refresh."];return;}
+    ((void (*)(id,SEL,void (^)(NSDictionary *)))objc_msgSend)(lyssna,selector,received);
 }
 static NSArray *activeDevices(NSArray *devices) {
     NSMutableArray *result=[NSMutableArray array];

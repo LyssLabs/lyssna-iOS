@@ -1,6 +1,6 @@
 """Generate or check the current native identity header."""
 import argparse
-from pixie_target import ROOT, target_header
+from lyssnaOffline_target import ROOT, target_header
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)

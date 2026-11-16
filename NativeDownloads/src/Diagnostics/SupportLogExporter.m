@@ -51,14 +51,14 @@ void SAPExportSupportLog(NSDictionary *native,void (^completion)(NSURL *,NSError
                 NSMutableDictionary *report=[SAPCompleteDiagnosticSnapshotWithJournal(native,journal)[@"report"] mutableCopy];
                 report[@"observation_note"]=[native[@"report"][@"diagnostics_enabled"] boolValue]?@"Passive diagnostic events were enabled when this package was exported.":@"Passive diagnostic events were disabled when this package was exported; their absence does not prove that no event occurred.";
                 report[@"diagnostic_trace"]=SAPTraceExport();
-                NSURL *summary=[SAPDocuments() URLByAppendingPathComponent:@"PixieSupportLog.json"];
+                NSURL *summary=[SAPDocuments() URLByAppendingPathComponent:@"LyssnaOfflineSupportLog.json"];
                 NSMutableArray *files=[NSMutableArray array];
-                for(NSString *name in @[@"SpotifyAudioProbeJournal.log",@"SpotifyAudioProbeJournal.1.log",@"PixieActions.log",@"PixieActions.1.log"]) {
+                for(NSString *name in @[@"SpotifyAudioProbeJournal.log",@"SpotifyAudioProbeJournal.1.log",@"LyssnaOfflineActions.log",@"LyssnaOfflineActions.1.log"]) {
                     NSURL *url=[SAPDocuments() URLByAppendingPathComponent:name];
                     [files addObject:SAPSupportLogReadFile(url)];
                 }
-                NSURL *eeveeLog=[NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:@"eeveespotify_debug.log"]];
-                [files addObject:SAPSupportLogReadFile(eeveeLog)];
+                NSURL *lyssnaLog=[NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:@"lyssna_debug.log"]];
+                [files addObject:SAPSupportLogReadFile(lyssnaLog)];
                 NSError *error=nil;
                 BOOL saved=SAPSupportLogWrite(summary,report,journal,SAPJournalSummaryForReport(journal),files,&error);
                 dispatch_async(dispatch_get_main_queue(),^{if(completion)completion(saved?summary:nil,error);});

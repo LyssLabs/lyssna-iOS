@@ -24,7 +24,7 @@ static char taskKindKey;
 @end
 @implementation SAPHTTPTaskKind @end
 static const NSUInteger maximumBody = 4 * 1024 * 1024;
-static NSString *const cacheKey = @"eeveeCachedCustomizeData";
+static NSString *const cacheKey = @"lyssnaCachedCustomizeData";
 
 static NSDictionary *flags(void) {
     return @{@"offline": @1, @"can-use-offline": @1,
@@ -96,7 +96,7 @@ static NSDictionary *observedFlags(NSData *data,BOOL bootstrap) {
     }
     return @{@"recognized":@YES,@"attributes":out};
 }
-// Exported so Eevee can apply the same rewrite to the customize copy it saves and replays.
+// Exported so Lyssna can apply the same rewrite to the customize copy it saves and replays.
 __attribute__((visibility("default"))) NSData *SAPRewriteOfflineConfig(NSData *data, BOOL bootstrap) {
     // Account.pb.swift: Bootstrap[2][1][1].Customize[1].Ucs[3].Attributes(map[1]).
     const unsigned bootstrapPath[] = {2, 1, 1, 1, 3}, customizePath[] = {1, 3};
@@ -108,7 +108,7 @@ __attribute__((visibility("default"))) NSData *SAPRewriteOfflineConfig(NSData *d
     return found && result ? result : data;
 }
 BOOL SAPPrepareCachedOfflineConfig(NSUserDefaults *defaults) {
-    // This is the exact cache key used by Eevee's 304 replay. No preference-wide
+    // This is the exact cache key used by Lyssna's 304 replay. No preference-wide
     // getter hook, cache deletion, account field change or periodic refresh.
     NSData *data = [defaults dataForKey:cacheKey];
     SAP_TRACE("config","cached_customize_observed",SAPTraceCurrentOperation(),@{@"cache_key":cacheKey,@"bytes":@(data.length),@"origin":@"local_cache",@"server_origin_proven":@NO});

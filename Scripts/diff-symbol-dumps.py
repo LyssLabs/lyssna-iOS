@@ -4,7 +4,7 @@ Diff two symbol dumps (from dump-spotify-symbols.py) and report what a
 Spotify update changed in terms of hook impact.
 
 Severity model:
-  - Classes that EeveeSpotify hooks (targetName / NSClassFromString "_TtC…")
+  - Classes that Lyssna hooks (targetName / NSClassFromString "_TtC…")
     are CRITICAL when they vanish — those hooks silently stop working.
   - RPC removals/renames are HIGH (matches the FetchMessage/pendragon class
     of breakage).
@@ -178,7 +178,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("old_dump")
     ap.add_argument("new_dump")
-    ap.add_argument("--tweak-sources", default="Sources/EeveeSpotify",
+    ap.add_argument("--tweak-sources", default="Sources/Lyssna",
                     help="tweak sources dir to scan for hooked class names")
     ap.add_argument("-o", "--output", default="-")
     args = ap.parse_args()

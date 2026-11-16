@@ -1,5 +1,5 @@
 #import "ShareFilePromise.h"
-static NSError *promiseError(NSString *message){return [NSError errorWithDomain:@"PixieShare" code:1 userInfo:@{NSLocalizedDescriptionKey:message}];}
+static NSError *promiseError(NSString *message){return [NSError errorWithDomain:@"LyssnaOfflineShare" code:1 userInfo:@{NSLocalizedDescriptionKey:message}];}
 @interface SAPShareFileRequest:NSObject
 @property(nonatomic,copy) void (^completion)(NSURL *,NSError *);
 @property(nonatomic,strong) NSProgress *progress;

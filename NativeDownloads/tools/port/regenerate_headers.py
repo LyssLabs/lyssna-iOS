@@ -1,7 +1,7 @@
-"""Write every target-dependent header in src/Generated from the active profile (PIXIE_TARGET)."""
+"""Write every target-dependent header in src/Generated from the active profile (LYSSNA_OFFLINE_TARGET)."""
 import os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-from pixie_target import ROOT, target_header, PROFILE
+from lyssnaOffline_target import ROOT, target_header, PROFILE
 from export_headers import headers
 from patch_native_restrictions import guard_header, limits_header
 from patch_key_request_mode import key_header

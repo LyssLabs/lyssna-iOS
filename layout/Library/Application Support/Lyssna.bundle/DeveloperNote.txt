@@ -1,0 +1,7 @@
+Lyssna for iOS
+
+Personal builds with custom lyrics, playback controls, and AirPlay receiver labels.
+
+Branding matches the Lyssna desktop app. Spotify account and native playback integration retain their original identity.
+
+Built on EeveeSpotifyReincarnated and its contributors. See the repository README and license notices for attribution.

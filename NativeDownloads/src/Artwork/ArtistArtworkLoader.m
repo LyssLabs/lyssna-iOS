@@ -57,7 +57,7 @@ NSString *SAPArtistArtworkIdentifier(NSString *value) {
 + (instancetype)shared {static SAPArtistArtworkLoader *loader;static dispatch_once_t once;dispatch_once(&once,^{loader=[self new];});return loader;}
 - (instancetype)init {
     if((self=[super init])) {
-        _queue=dispatch_queue_create("com.pixie.artist-artwork",DISPATCH_QUEUE_SERIAL);
+        _queue=dispatch_queue_create("com.lyssnaOffline.artist-artwork",DISPATCH_QUEUE_SERIAL);
         _delegateQueue=[NSOperationQueue new];_delegateQueue.maxConcurrentOperationCount=1;_delegateQueue.underlyingQueue=_queue;
         NSURLSessionConfiguration *configuration=[NSURLSessionConfiguration ephemeralSessionConfiguration];
         configuration.URLCache=nil;configuration.requestCachePolicy=NSURLRequestReloadIgnoringLocalCacheData;

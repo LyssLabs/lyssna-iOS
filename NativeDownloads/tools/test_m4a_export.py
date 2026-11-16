@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class M4AExportTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.temp = tempfile.TemporaryDirectory(prefix="pixie-m4a-")
+        cls.temp = tempfile.TemporaryDirectory(prefix="lyssnaOffline-m4a-")
         cls.work = Path(cls.temp.name)
         cls.binary = cls.work / "m4a-export"
         assert (ROOT / "src/Export/M4AExport.m").exists(), "Native M4A exporter is missing"

@@ -1,4 +1,4 @@
-"""Install Pixie 1.4 export observations in the 9.1.92 Spotify executable.
+"""Install LyssnaOffline 1.4 export observations in the 9.1.92 Spotify executable.
 
 Every observation is a guarded register snapshot (ABI 2) taken at a displaced
 function prologue. The original instructions, arguments, results and lifetimes
@@ -6,8 +6,8 @@ are preserved; no executable memory is written at runtime.
 
 Addresses and original bytes come from targets/spotify-9.1.92.json ("export").
 The input must be the current 9.1.92 executable: exact UUID, original
-instructions at every entry and zero-filled caves are required. Existing Pixie
-and Eevee patches are neither restored nor replaced.
+instructions at every entry and zero-filled caves are required. Existing LyssnaOffline
+and Lyssna patches are neither restored nor replaced.
 """
 from functools import cache
 from pathlib import Path
@@ -15,7 +15,7 @@ import struct
 import subprocess
 import tempfile
 
-from pixie_target import PROFILE
+from lyssnaOffline_target import PROFILE
 from patch_native_restrictions import branch, layout, UUID
 from patch_key_request_mode import DLSYM_STUB, _verify_dlsym_binding
 from patch_native_trace import text_tail_padding
@@ -93,7 +93,7 @@ Ldone:
 Lname:
  .asciz "SAPObserveExportBoundaryV2"
 '''
-    with tempfile.TemporaryDirectory(prefix='pixie-frame-v2-') as temp:
+    with tempfile.TemporaryDirectory(prefix='lyssnaOffline-frame-v2-') as temp:
         source, obj = Path(temp)/'frame.S', Path(temp)/'frame.o'
         source.write_text(assembly)
         sdk = subprocess.check_output(['xcrun', '--sdk', 'iphoneos', '--show-sdk-path'], text=True).strip()
@@ -174,7 +174,7 @@ def patch(data):
         out[start:start+len(displaced)] = struct.pack('<I', branch(entry, cave))+displaced[4:]
         changes.append({'boundary': name, 'kind': kind, 'entry': hex(entry), 'cave': hex(cave), 'size': len(code)})
     return bytes(out), {'uuid': uuid.hex(), 'snapshot_abi': 2, 'boundaries': changes,
-                        'existing_pixie_and_eevee_patches_preserved': True,
+                        'existing_lyssnaOffline_and_lyssna_patches_preserved': True,
                         'per_block_hooks': False, 'native_methods_invoked_by_observers': False}
 
 

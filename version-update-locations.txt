@@ -1,4 +1,4 @@
-EeveeSpotify Version Update Locations
+Lyssna Version Update Locations
 =====================================
 
 When bumping the version, update these 2 files:
@@ -7,7 +7,7 @@ When bumping the version, update these 2 files:
    - Line 3: Version: X.X.X
    - Example: Version: 7.0.0
 
-2. Sources/EeveeSpotify/Tweak.x.swift
+2. Sources/Lyssna/Tweak.x.swift
    - static let version = "X.X.X"     (version shown in settings + debug log)
    - static let buildNumber = "N"     (shown as "v7.0.0 (build N)" in settings
                                        and written to the debug log header;
